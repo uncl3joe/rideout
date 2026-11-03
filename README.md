@@ -70,6 +70,10 @@ lib/supabase/          Datenbank-Anbindung (Browser + Server)
 middleware.js          Session + Schutz (ohne Login -> /login)
 ```
 
-Noch nicht gebaut (kommen als Nächstes): Übersicht, Statistik, Mitarbeiter,
-Ausgaben, Verträge, Autohandel, Katalog-Editor. Das Gerüst und die Rechte dafür
-stehen bereits.
+Jetzt live und an die echte Datenbank angebunden: Mein Terminal, Übersicht
+(mit Zeitraum-Umschalter), Statistik, Mitarbeiter (Team + Rang vergeben),
+Ausgaben, Verträge, Preise & Katalog (anlegen/bearbeiten/löschen).
+
+Kommt noch: neue Logins direkt in der App anlegen/löschen (braucht einen
+zusätzlichen geheimen Schlüssel), und die öffentliche Homepage mit Fahrzeughandel
+(Phase 3).

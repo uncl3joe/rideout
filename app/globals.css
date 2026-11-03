@@ -131,3 +131,59 @@ a{color:inherit}
 /* Toast */
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--raise);border:1px solid var(--accent-soft);color:var(--ink);padding:11px 18px;border-radius:10px;font-size:13.5px;font-weight:600;opacity:0;transition:.25s;z-index:40;pointer-events:none;box-shadow:0 8px 30px rgba(0,0,0,.5);max-width:90vw}
 .toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* Zeitraum-Umschalter */
+.seg{display:inline-flex;gap:2px;background:var(--panel2);border:1px solid var(--line);border-radius:9px;padding:3px;margin-left:auto}
+.seg button{background:none;border:none;color:var(--mut);border-radius:6px;padding:6px 13px;font-size:13px;font-weight:600}
+.seg button.on{background:var(--raise);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+@media(max-width:560px){.seg{margin-left:0}}
+
+/* KPI-Reihe mit 5 */
+.kpis.five{grid-template-columns:repeat(5,1fr);margin-top:0}
+@media(max-width:760px){.kpis.five{grid-template-columns:repeat(2,1fr)}}
+
+/* Tabellen */
+.tw{overflow-x:auto}
+table.tbl{width:100%;border-collapse:collapse;font-size:13.5px}
+table.tbl th{font-size:10.5px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);font-weight:600;text-align:right;padding:9px 12px;border-bottom:1px solid var(--line);white-space:nowrap}
+table.tbl th.l{text-align:left}
+table.tbl td{padding:10px 12px;border-bottom:1px solid var(--line2);text-align:right;white-space:nowrap}
+table.tbl td.l{text-align:left}
+table.tbl td.num{font-variant-numeric:tabular-nums}
+table.tbl tr:last-child td{border-bottom:none}
+table.tbl .umc{color:var(--blue);font-weight:600}
+table.tbl .pvc{color:var(--accent);font-weight:600}
+.who2{display:flex;align-items:center;gap:9px}
+.who2 .ava{width:28px;height:28px;font-size:11px}
+
+/* Badges & Admin-Felder */
+.badge{display:inline-block;font-size:10px;letter-spacing:.09em;text-transform:uppercase;font-weight:700;border-radius:20px;padding:2px 9px;border:1px solid var(--line)}
+.badge.inh{color:var(--accent);background:var(--accent-soft);border-color:var(--accent-soft)}
+.badge.lei{color:var(--blue);background:var(--blue-soft);border-color:var(--blue-soft)}
+.badge.mec{color:var(--mut);background:var(--panel2)}
+.badge.pra{color:var(--faint);background:var(--panel2)}
+.rolesel{background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:5px 7px;font-size:12px}
+.vkin{width:96px;background:var(--panel2);border:1px solid var(--line);color:var(--ink);border-radius:7px;padding:6px 8px;font-size:13px;text-align:right;font-variant-numeric:tabular-nums}
+.xdel{background:none;border:none;color:var(--faint);font-size:16px;line-height:1;padding:2px 4px}
+.xdel:hover{color:var(--bad)}
+
+/* Balken (Statistik) */
+.bar{display:grid;grid-template-columns:1fr;gap:9px;padding:4px 0 2px}
+.brow{display:grid;grid-template-columns:150px 1fr auto;gap:11px;align-items:center}
+.brow .bn{font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.brow .bt{height:9px;border-radius:5px;background:var(--line2);overflow:hidden}
+.brow .bt i{display:block;height:100%;background:linear-gradient(90deg,var(--accent-deep),var(--accent));border-radius:5px}
+.brow.blu .bt i{background:linear-gradient(90deg,#1c6fa6,var(--blue))}
+.brow .bc{font-size:12.5px;color:var(--mut);font-variant-numeric:tabular-nums;white-space:nowrap}
+@media(max-width:520px){.brow{grid-template-columns:120px 1fr auto}}
+
+/* Verträge */
+.vert{padding:13px 16px;border-bottom:1px solid var(--line2)}
+.vert:last-child{border-bottom:none}
+.vert .r1{display:flex;align-items:baseline;gap:8px}
+.vert .vn{font-weight:600;font-size:14.5px}
+.vert .st{margin-left:auto;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;font-weight:700}
+.vert .st.a{color:var(--good)} .vert .st.e{color:var(--faint)}
+.vert .meta{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:6px;font-size:12.5px;color:var(--mut)}
+.vert .meta b{color:var(--ink);font-weight:600}
+.vert .note{margin-top:6px;font-size:12.5px;color:var(--faint)}

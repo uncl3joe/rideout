@@ -4,6 +4,12 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Terminal from '@/components/Terminal';
+import Uebersicht from '@/components/Uebersicht';
+import Statistik from '@/components/Statistik';
+import Mitarbeiter from '@/components/Mitarbeiter';
+import Ausgaben from '@/components/Ausgaben';
+import Vertraege from '@/components/Vertraege';
+import Katalog from '@/components/Katalog';
 
 const isLeitung = (r) => ['manager', 'werkstattleitung', 'inhaber'].includes(r);
 const isWL = (r) => ['werkstattleitung', 'inhaber'].includes(r);
@@ -105,18 +111,24 @@ export default function Shell({ profile, services }) {
         </aside>
 
         <main className="content">
-          {view === 'terminal' ? (
-            <Terminal services={services} mechanicName={profile.name} />
-          ) : (
+          {view === 'terminal' && <Terminal services={services} mechanicName={profile.name} />}
+          {view === 'uebersicht' && <Uebersicht />}
+          {view === 'statistik' && <Statistik />}
+          {view === 'mitarbeiter' && <Mitarbeiter role={role} />}
+          {view === 'ausgaben' && <Ausgaben />}
+          {view === 'vertraege' && <Vertraege />}
+          {view === 'katalog' && <Katalog />}
+          {view === 'autohandel' && (
             <>
               <div className="vhead">
-                <h2>{NAV.find((n) => n.v === view)?.t}</h2>
+                <h2>Autohandel</h2>
+                <span className="vs">Phase 3</span>
               </div>
               <div className="soon">
-                <div className="big">Kommt als Nächstes</div>
+                <div className="big">Fahrzeughandel</div>
                 <p>
-                  Dieser Bereich wird gerade an die Datenbank angebunden. Das Gerüst,
-                  die Rollen und die Rechte stehen – die Ansicht folgt im nächsten Schritt.
+                  Der öffentliche Verkauf auf der ROC-Homepage kommt in Phase 3. Die Leitungsebene
+                  pflegt die Fahrzeuge dann hier.
                 </p>
               </div>
             </>
