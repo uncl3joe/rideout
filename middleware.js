@@ -33,8 +33,10 @@ export async function middleware(request) {
 
   const path = request.nextUrl.pathname;
   const isAuthRoute = path === '/login';
+  // Öffentlich erreichbar (ohne Login): die Kunden-Fahrzeugseite.
+  const isPublic = isAuthRoute || path === '/shop' || path.startsWith('/shop/');
 
-  if (!user && !isAuthRoute) {
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);

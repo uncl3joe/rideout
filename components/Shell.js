@@ -10,6 +10,7 @@ import Mitarbeiter from '@/components/Mitarbeiter';
 import Ausgaben from '@/components/Ausgaben';
 import Vertraege from '@/components/Vertraege';
 import Katalog from '@/components/Katalog';
+import Autohandel from '@/components/Autohandel';
 
 const isLeitung = (r) => ['manager', 'werkstattleitung', 'inhaber'].includes(r);
 const isWL = (r) => ['werkstattleitung', 'inhaber'].includes(r);
@@ -154,21 +155,7 @@ export default function Shell({ profile, services }) {
           {view === 'ausgaben' && <Ausgaben />}
           {view === 'vertraege' && <Vertraege />}
           {view === 'katalog' && <Katalog />}
-          {view === 'autohandel' && (
-            <>
-              <div className="vhead">
-                <h2>Autohandel</h2>
-                <span className="vs">Phase 3</span>
-              </div>
-              <div className="soon">
-                <div className="big">Fahrzeughandel</div>
-                <p>
-                  Der öffentliche Verkauf auf der ROC-Homepage kommt in Phase 3. Die Leitungsebene
-                  pflegt die Fahrzeuge dann hier.
-                </p>
-              </div>
-            </>
-          )}
+          {view === 'autohandel' && <Autohandel role={role} userId={profile.id} myName={profile.name} />}
         </main>
       </div>
 
