@@ -141,6 +141,11 @@ export default function Terminal({ services, mechanicName, userId }) {
   function removeLine(i) {
     setLines((prev) => prev.filter((_, idx) => idx !== i));
   }
+  function clearLines() {
+    setLines([]);
+    setSsum('');
+    setThumb(null);
+  }
 
   async function runAI(dataURL) {
     setReading(true);
@@ -153,9 +158,21 @@ export default function Terminal({ services, mechanicName, userId }) {
         return;
       }
       if (res.items && res.items.length) {
-        setLines(res.items.map((i) => ({ name: i.name, qty: i.qty })));
-        setSsum(res.total ? String(res.total) : '');
-        flash('KI: ' + res.matched + ' Leistung(en) erkannt' + (res.total ? ' · Summe ' + numf(res.total) + ' $' : ''));
+        // Ergänzen statt überschreiben: nur Leistungen hinzufügen, die noch
+        // nicht in der Liste stehen (für lange Listen in mehreren Aufnahmen).
+        const have = new Set(lines.map((l) => l.name));
+        const additions = res.items.filter((i) => !have.has(i.name));
+        const dupes = res.items.length - additions.length;
+        setLines((prev) => {
+          const ph = new Set(prev.map((l) => l.name));
+          return [...prev, ...res.items.filter((i) => !ph.has(i.name)).map((i) => ({ name: i.name, qty: i.qty }))];
+        });
+        if (res.total) setSsum(String(res.total)); // Summe nur setzen, wenn im Bild sichtbar
+        flash(
+          additions.length
+            ? additions.length + ' neue Leistung(en) hinzugefügt' + (dupes ? ' · ' + dupes + ' schon drin' : '')
+            : 'Alles schon erfasst – nichts Neues im Bild'
+        );
       } else {
         flash('KI hat nichts Passendes erkannt – bitte manuell hinzufügen');
       }
@@ -256,11 +273,19 @@ export default function Terminal({ services, mechanicName, userId }) {
             <div className="ki-note">
               {reading
                 ? 'Die KI liest den Screenshot gerade aus …'
-                : 'Bild einfügen oder aufnehmen → die KI erkennt die Leistungen und füllt den Rechner. Danach kannst du alles noch anpassen.'}
+                : 'Screenshot einfügen oder aufnehmen → die KI erkennt die Leistungen. Lange Liste? Einfach runterscrollen und nochmal aufnehmen — Neues wird ergänzt, Doppelte werden erkannt.'}
             </div>
 
             <div style={{ marginTop: 16 }}>
-              <p className="lbl">Leistung hinzufügen / korrigieren</p>
+              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 6 }}>
+                <p className="lbl" style={{ margin: 0 }}>Leistung hinzufügen / korrigieren</p>
+                {lines.length > 0 && (
+                  <button type="button" onClick={clearLines}
+                    style={{ marginLeft: 'auto', background: 'none', border: 'none', color: 'var(--faint)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                    Liste leeren
+                  </button>
+                )}
+              </div>
               <div className="addrow">
                 <select value={sel} onChange={(e) => setSel(e.target.value)}>
                   <option value="">— Leistung wählen —</option>
