@@ -15,7 +15,9 @@ Geheim (nur Server – niemals öffentlich; in Vercel einfach normal eintragen):
 - **Secret key** aus Supabase (Settings → API Keys → „Secret keys")  →  `SUPABASE_SERVICE_ROLE_KEY`
   (nötig, um Mitarbeiter-Logins anzulegen/zu löschen)
 - **Gemini API-Key** (kostenlos auf https://aistudio.google.com/apikey)  →  `GEMINI_API_KEY`
-  (nötig für die KI-Auslesung der Screenshots); optional `GEMINI_MODEL` (Standard: `gemini-2.0-flash`)
+  (nötig für die KI-Auslesung der Screenshots). Die Modell-Kette ist fest
+  eingebaut (wie im Sheet-Rechner, Primär `gemini-3.5-flash-lite`, mit Fallback);
+  `GEMINI_MODEL` ist optional, um ein Modell zu erzwingen.
 
 Der anon/publishable-Key darf öffentlich sein – die Row Level Security schützt die Daten.
 Die zwei geheimen Keys dürfen das NICHT (keine `NEXT_PUBLIC_`-Präfix).

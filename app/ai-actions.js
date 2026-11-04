@@ -19,7 +19,25 @@ export async function readScreenshot({ imageBase64, mimeType }) {
   const names = (services || []).map((s) => s.name);
   if (!names.length) return { ok: false, error: 'Katalog ist leer.' };
 
-  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  // Dieselbe priorisierte Modell-Kette wie im Google-Sheet-Rechner:
+  // Flash-Lite zuerst (schnell, hohes Limit), dann Flash, dann Pro als Reserve.
+  const MODELS = [
+    'gemini-3.5-flash-lite',
+    'gemini-3.1-flash-lite',
+    'gemini-3.1-flash-lite-preview',
+    'gemini-2.5-flash-lite',
+    'gemini-3.8-flash',
+    'gemini-3.7-flash',
+    'gemini-3.6-flash',
+    'gemini-3.5-flash',
+    'gemini-3-flash-preview',
+    'gemini-2.5-flash',
+    'gemini-2.5-pro',
+    'gemini-3.1-pro-preview',
+  ];
+  const override = process.env.GEMINI_MODEL; // optional: ein Modell erzwingen
+  const chain = override ? [override, ...MODELS.filter((m) => m !== override)] : MODELS;
+
   const prompt =
     'Du bekommst einen Screenshot aus einem GTA-Roleplay-Werkstatt-Spiel (eine Auftrags- oder Rechnungsliste). ' +
     'Erkenne die aufgelisteten Leistungen und ihre Anzahl. Ordne JEDE erkannte Zeile exakt einem Namen aus dieser Liste zu ' +
@@ -29,38 +47,53 @@ export async function readScreenshot({ imageBase64, mimeType }) {
     '{"items":[{"name":"<exakter Name aus der Liste>","qty":<ganze Zahl>}],"total":<Gesamtsumme in Dollar als Zahl, oder 0 wenn nicht sichtbar>}\n' +
     'Lass Zeilen weg, die zu keinem Namen passen. Wenn eine Leistung mehrfach vorkommt, zähle sie zusammen.';
 
-  let resp;
-  try {
-    resp = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+  const reqBody = JSON.stringify({
+    contents: [
       {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                { inline_data: { mime_type: mimeType || 'image/jpeg', data: imageBase64 } },
-                { text: prompt },
-              ],
-            },
-          ],
-          generationConfig: { responseMimeType: 'application/json', temperature: 0 },
-        }),
-      }
-    );
-  } catch {
-    return { ok: false, error: 'KI nicht erreichbar.' };
-  }
+        parts: [
+          { inline_data: { mime_type: mimeType || 'image/jpeg', data: imageBase64 } },
+          { text: prompt },
+        ],
+      },
+    ],
+    generationConfig: { response_mime_type: 'application/json', temperature: 0 },
+  });
 
-  if (!resp.ok) {
+  // Modelle der Reihe nach probieren (ein Versuch pro Modell, wie im Sheet):
+  // 200 gewinnt; 401/403 = Key-Problem -> abbrechen; alles andere -> nächstes Modell.
+  let txt = '';
+  let usedModel = '';
+  let lastErr = '';
+  for (const model of chain) {
+    let resp;
+    try {
+      resp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+        { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: reqBody }
+      );
+    } catch {
+      lastErr = 'Netzwerk/Timeout';
+      continue;
+    }
+    if (resp.status === 200) {
+      const j = await resp.json();
+      txt = (j?.candidates?.[0]?.content?.parts?.[0]?.text || '')
+        .replace(/```json/gi, '')
+        .replace(/```/g, '')
+        .trim();
+      usedModel = model;
+      break;
+    }
     const t = await resp.text().catch(() => '');
-    return { ok: false, error: 'KI-Fehler ' + resp.status + (t ? ': ' + t.slice(0, 140) : '') };
+    lastErr = resp.status + (t ? ' ' + t.slice(0, 120) : '');
+    if (resp.status === 401 || resp.status === 403) {
+      return { ok: false, error: 'KI-Schlüssel ungültig oder gesperrt (' + resp.status + ').' };
+    }
+    // 404 / 429 / 503 / 500 … -> nächstes Modell in der Kette
   }
-
-  const j = await resp.json();
-  let txt = j?.candidates?.[0]?.content?.parts?.[0]?.text || '';
-  txt = txt.replace(/```json/gi, '').replace(/```/g, '').trim();
+  if (!usedModel) {
+    return { ok: false, error: 'Alle KI-Modelle gerade nicht verfügbar (' + lastErr + '). Meist in 1–2 Min. wieder frei.' };
+  }
 
   let parsed;
   try {
@@ -87,5 +120,6 @@ export async function readScreenshot({ imageBase64, mimeType }) {
     total: Math.round(Number(parsed.total) || 0),
     recognized: (parsed.items || []).length,
     matched: items.length,
+    model: usedModel,
   };
 }
