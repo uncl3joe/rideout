@@ -10,6 +10,16 @@ const PROV = 0.3;
 const fmt = (n) => Math.round(n).toLocaleString('de-DE') + ' $';
 const numf = (n) => Math.round(n).toLocaleString('de-DE');
 const CAT_ORDER = ['Motor & Leistung', 'Lackierung', 'Pflege', 'Reparaturen', 'Wartung', 'Optik', 'Arbeitsleistung'];
+const WD = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
+const MO = ['Jan.', 'Feb.', 'März', 'Apr.', 'Mai', 'Juni', 'Juli', 'Aug.', 'Sep.', 'Okt.', 'Nov.', 'Dez.'];
+const timeOf = (ts) => {
+  try {
+    const d = new Date(ts);
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  } catch {
+    return '';
+  }
+};
 
 // Bild verkleinern (für schnellen Upload an die KI).
 function toScaled(dataURL) {
@@ -67,7 +77,7 @@ export default function Terminal({ services, mechanicName, userId }) {
     const sb = createClient();
     const { data } = await sb
       .from('orders')
-      .select('order_date, customer, umsatz, provision, created_at')
+      .select('id, order_date, customer, umsatz, provision, created_at, order_items(service_name, qty)')
       .eq('mechanic_id', userId)
       .order('created_at', { ascending: false })
       .limit(200);
@@ -80,17 +90,28 @@ export default function Terminal({ services, mechanicName, userId }) {
 
   const mine = useMemo(() => {
     if (!myOrders) return null;
+    const tISO = periodStartISO('heute');
     const bucket = (start) => {
       const o = myOrders.filter((x) => x.order_date >= start);
       return { auf: o.length, um: o.reduce((s, x) => s + x.umsatz, 0), prov: o.reduce((s, x) => s + x.provision, 0) };
     };
+    const todayOrders = myOrders.filter((x) => x.order_date >= tISO);
+    const cnt = {};
+    todayOrders.forEach((o) => (o.order_items || []).forEach((it) => {
+      cnt[it.service_name] = (cnt[it.service_name] || 0) + it.qty;
+    }));
+    const top = Object.entries(cnt).sort((a, b) => b[1] - a[1]).slice(0, 5);
     return {
-      heute: bucket(periodStartISO('heute')),
+      heute: bucket(tISO),
       woche: bucket(periodStartISO('woche')),
       monat: bucket(periodStartISO('monat')),
-      recent: myOrders.slice(0, 8),
+      todayOrders,
+      top,
     };
   }, [myOrders]);
+
+  const now = new Date();
+  const dateStr = WD[now.getDay()] + ', ' + now.getDate() + '. ' + MO[now.getMonth()];
 
   const calc = useMemo(() => {
     let basis = 0;
@@ -314,40 +335,68 @@ export default function Terminal({ services, mechanicName, userId }) {
 
         <section>
           <div className="card">
-            <div className="hd"><h2>Meine Zahlen</h2><span className="tag">live</span></div>
-            <div className="tw">
-              <table className="tbl">
-                <tbody>
-                  <tr><th className="l">Zeitraum</th><th>Aufträge</th><th>Umsatz</th><th>Provision</th></tr>
-                  {[['Heute', 'heute'], ['Woche', 'woche'], ['Monat', 'monat']].map(([lbl, k]) => (
-                    <tr key={k}>
-                      <td className="l">{lbl}</td>
-                      <td className="num">{mine ? mine[k].auf : 0}</td>
-                      <td className="num umc">{fmt(mine ? mine[k].um : 0)}</td>
-                      <td className="num pvc">{fmt(mine ? mine[k].prov : 0)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="hd"><h2>Heute</h2><span className="tag">{dateStr}</span></div>
+            <div className="daykpis">
+              <div className="kpi"><div className="k">Aufträge</div><div className="v num">{mine ? mine.heute.auf : 0}</div></div>
+              <div className="kpi rev"><div className="k">Umsatz</div><div className="v num">{fmt(mine ? mine.heute.um : 0)}</div></div>
+              <div className="kpi pro"><div className="k">Deine Provision</div><div className="v num">{fmt(mine ? mine.heute.prov : 0)}</div></div>
+            </div>
+            <div className="ords">
+              {!mine ? (
+                <div style={{ padding: '22px 16px', color: 'var(--faint)', fontSize: 13 }}>Lädt …</div>
+              ) : mine.todayOrders.length === 0 ? (
+                <div style={{ padding: '22px 16px', color: 'var(--faint)', fontSize: 13 }}>Noch keine Aufträge heute.</div>
+              ) : (
+                mine.todayOrders.map((o) => {
+                  const its = o.order_items || [];
+                  const names = its.map((it) => it.service_name + (it.qty > 1 ? ' ×' + it.qty : '')).join(' · ');
+                  return (
+                    <div className="ord" key={o.id}>
+                      <div className="r1"><span className="cust">{o.customer || 'Laufkunde'}</span><span className="tm">{timeOf(o.created_at)}</span></div>
+                      <div className="r2">
+                        <span className="chip">{its.length} Leistung{its.length !== 1 ? 'en' : ''}</span>
+                        <span className="money"><span className="um num">{fmt(o.umsatz)}</span><span className="pv num">+{fmt(o.provision)} Prov.</span></span>
+                      </div>
+                      {names && <div className="svc">{names}</div>}
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
+
           <div className="card" style={{ marginTop: 18 }}>
-            <div className="hd"><h2>Letzte Aufträge</h2><span className="tag">zuletzt</span></div>
+            <div className="hd"><h2>Meine Übersicht</h2><span className="tag">Woche &amp; Monat</span></div>
+            <div className="per">
+              <div className="prow">
+                <span className="pl">Diese Woche</span>
+                <span className="pa num">{mine ? mine.woche.auf : 0} Aufträge</span>
+                <span className="grp"><span className="pu num">{fmt(mine ? mine.woche.um : 0)}</span><span className="pp num">+{fmt(mine ? mine.woche.prov : 0)} Prov.</span></span>
+              </div>
+              <div className="prow">
+                <span className="pl">Dieser Monat</span>
+                <span className="pa num">{mine ? mine.monat.auf : 0} Aufträge</span>
+                <span className="grp"><span className="pu num">{fmt(mine ? mine.monat.um : 0)}</span><span className="pp num">+{fmt(mine ? mine.monat.prov : 0)} Prov.</span></span>
+              </div>
+            </div>
+          </div>
+
+          <div className="card" style={{ marginTop: 18 }}>
+            <div className="hd"><h2>Meistverkauft heute</h2><span className="tag">deine Leistungen</span></div>
             <div className="bd">
-              {!mine ? (
-                <div style={{ color: 'var(--faint)', fontSize: 13 }}>Lädt …</div>
-              ) : mine.recent.length === 0 ? (
-                <div style={{ color: 'var(--faint)', fontSize: 13 }}>Noch keine Aufträge.</div>
-              ) : (
-                mine.recent.map((o, i) => (
-                  <div className="ln" key={i} style={{ borderRadius: 9, marginBottom: 6 }}>
-                    <div className="nm">{o.customer || 'Laufkunde'}<small>{o.order_date}</small></div>
-                    <div className="q num">{fmt(o.umsatz)}</div>
-                    <div className="pr num" style={{ color: 'var(--accent)' }}>+{fmt(o.provision)}</div>
-                    <span />
-                  </div>
-                ))
-              )}
+              <div className="bar">
+                {!mine || mine.top.length === 0 ? (
+                  <div style={{ color: 'var(--faint)', fontSize: 13 }}>Noch keine Verkäufe heute.</div>
+                ) : (
+                  mine.top.map(([n, c]) => (
+                    <div className="brow" key={n}>
+                      <span className="bn">{n}</span>
+                      <span className="bt"><i style={{ width: Math.round((c / mine.top[0][1]) * 100) + '%' }} /></span>
+                      <span className="bc">{c}×</span>
+                    </div>
+                  ))
+                )}
+              </div>
             </div>
           </div>
         </section>

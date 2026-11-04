@@ -205,3 +205,26 @@ table.tbl .pvc{color:var(--accent);font-weight:600}
 .modal{width:min(360px,94vw);background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:22px}
 .modal h3{font-family:var(--disp);font-weight:700;letter-spacing:.05em;text-transform:uppercase;margin:0 0 14px;font-size:18px}
 .modal .field{margin-bottom:11px}
+
+/* Terminal: Heute-Auftragskarten + Wochen/Monats-Zeilen (wie im Prototyp) */
+.daykpis{display:grid;grid-template-columns:repeat(3,1fr);gap:9px;padding:16px;border-bottom:1px solid var(--line2)}
+.ords{display:flex;flex-direction:column}
+.ord{padding:13px 16px;border-bottom:1px solid var(--line2)}
+.ord:last-child{border-bottom:none}
+.ord .r1{display:flex;align-items:baseline;gap:8px}
+.ord .cust{font-weight:600;font-size:14px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ord .tm{font-size:11.5px;color:var(--faint);margin-left:auto;white-space:nowrap;font-variant-numeric:tabular-nums}
+.ord .r2{display:flex;align-items:center;gap:8px;margin-top:5px;flex-wrap:wrap}
+.chip{font-size:11px;color:var(--mut);background:var(--panel2);border:1px solid var(--line);border-radius:20px;padding:2px 9px;white-space:nowrap}
+.ord .money{margin-left:auto;display:flex;gap:14px;align-items:baseline}
+.ord .money .um{font-weight:700;font-size:14.5px;color:var(--blue)}
+.ord .money .pv{font-size:12px;color:var(--accent);white-space:nowrap}
+.ord .svc{margin-top:7px;font-size:12px;color:var(--faint);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.per{display:flex;flex-direction:column}
+.prow{display:flex;align-items:baseline;gap:10px;padding:12px 16px;border-bottom:1px solid var(--line2)}
+.prow:last-child{border-bottom:none}
+.prow .pl{font-family:var(--disp);font-weight:600;letter-spacing:.06em;text-transform:uppercase;font-size:13px}
+.prow .pa{font-size:12px;color:var(--mut)}
+.prow .grp{margin-left:auto;display:flex;gap:15px;align-items:baseline}
+.prow .pu{font-weight:700;font-size:15.5px;color:var(--blue)}
+.prow .pp{font-size:12.5px;color:var(--accent);white-space:nowrap}
