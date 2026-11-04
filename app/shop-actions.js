@@ -33,16 +33,26 @@ export async function reserveVehicle({ vehicleId, name, contact }) {
   const hook = process.env.DISCORD_WEBHOOK_URL;
   if (hook) {
     try {
-      const msg =
-        '🏎️ **Neue Reservierung – Ride Out Customs**\n' +
-        '**Fahrzeug:** ' + veh.model + '\n' +
-        '**Preis:** ' + Number(veh.price).toLocaleString('de-DE') + ' $\n' +
-        '**Verkäufer:** ' + (veh.seller_name || '—') + '\n' +
-        '**Kunde:** ' + name + ' · ' + contact;
       await fetch(hook, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: msg }),
+        body: JSON.stringify({
+          embeds: [
+            {
+              title: '🏎️ Neue Reservierung',
+              color: 0xff7a1a,
+              fields: [
+                { name: 'Fahrzeug', value: String(veh.model || '—'), inline: true },
+                { name: 'Preis', value: Number(veh.price).toLocaleString('de-DE') + ' $', inline: true },
+                { name: 'Verkäufer', value: String(veh.seller_name || '—'), inline: true },
+                { name: 'Kunde', value: name, inline: true },
+                { name: 'Kontakt', value: contact, inline: true },
+              ],
+              footer: { text: 'Ride Out Customs · Fahrzeughandel' },
+              timestamp: new Date().toISOString(),
+            },
+          ],
+        }),
       });
     } catch {
       /* Benachrichtigung ist optional – Reservierung bleibt trotzdem gültig */
