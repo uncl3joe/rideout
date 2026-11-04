@@ -69,8 +69,8 @@ export default function Shop({ vehicles }) {
       </header>
 
       <div className="shop-hero">
-        <h1>Finde dein <span>nächstes</span> Fahrzeug</h1>
-        <p>Handverlesene Fahrzeuge von Ride Out Customs — reservier dir deins in Sekunden.</p>
+        <h1>Dein <span>Ride</span> wartet.</h1>
+        <p>Handgepflegte Rides, frisch aus unserer Halle.<br />Jetzt aussuchen und in Sekunden reservieren.</p>
       </div>
 
       <div className="shop-wrap">
