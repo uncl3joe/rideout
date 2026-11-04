@@ -30,7 +30,8 @@ export default function LoginPage() {
     <div className="loginwrap">
       <form className="loginbox" onSubmit={onSubmit}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" className="loginlogo" alt="Ride Out Customs – Werkstatt-Terminal" />
+        <img src="/logo.png" className="loginlogo" alt="Ride Out Customs" />
+        <div className="sub">Werkstatt-Terminal</div>
         <div className="field">
           <label htmlFor="email">E-Mail</label>
           <input id="email" type="email" autoComplete="username" value={email}

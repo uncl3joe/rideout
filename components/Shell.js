@@ -105,7 +105,8 @@ export default function Shell({ profile, services }) {
       <header className="top">
         <div className="brand">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" className="brandlogo" alt="Ride Out Customs – Werkstatt-Terminal" />
+          <img src="/logo.png" className="brandlogo" alt="Ride Out Customs" />
+          <div className="brandsub">Werkstatt-Terminal</div>
         </div>
         <div className="spacer" />
         <div className="usermenu" onClick={(e) => e.stopPropagation()}>
