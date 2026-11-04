@@ -157,6 +157,8 @@ export default function Terminal({ services, mechanicName, userId }) {
         flash(res.error || 'KI-Fehler');
         return;
       }
+      // Kunde + Kennzeichen automatisch übernehmen (nur wenn Feld noch leer ist)
+      if (res.customer) setCustomer((prev) => (prev && prev.trim() ? prev : res.customer));
       if (res.items && res.items.length) {
         // Ergänzen statt überschreiben: nur Leistungen hinzufügen, die noch
         // nicht in der Liste stehen (für lange Listen in mehreren Aufnahmen).

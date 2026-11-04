@@ -44,7 +44,7 @@ export async function readScreenshot({ imageBase64, mimeType }) {
     '(benutze ausschließlich diese Schreibweisen):\n' +
     names.join('\n') +
     '\n\nGib AUSSCHLIESSLICH gültiges JSON in genau diesem Format zurück, ohne Erklärung:\n' +
-    '{"items":[{"name":"<exakter Name aus der Liste>","qty":<ganze Zahl>}],"total":<Gesamtsumme in Dollar als Zahl, oder 0 wenn nicht sichtbar>}\n' +
+    '{"items":[{"name":"<exakter Name aus der Liste>","qty":<ganze Zahl>}],"total":<Gesamtsumme in Dollar als Zahl, oder 0 wenn nicht sichtbar>,"kunde":"<Kundenname falls im Bild sichtbar, sonst leerer String>","kennzeichen":"<Kfz-Kennzeichen falls sichtbar, sonst leerer String>"}\n' +
     'Lass Zeilen weg, die zu keinem Namen passen. Wenn eine Leistung mehrfach vorkommt, zähle sie zusammen.';
 
   const reqBody = JSON.stringify({
@@ -114,10 +114,15 @@ export async function readScreenshot({ imageBase64, mimeType }) {
     else items.push({ name: real, qty });
   });
 
+  const kunde = String(parsed.kunde || '').trim();
+  const kennz = String(parsed.kennzeichen || '').trim();
+  const customer = kunde && kennz ? kunde + ' (' + kennz + ')' : kunde || kennz || '';
+
   return {
     ok: true,
     items,
     total: Math.round(Number(parsed.total) || 0),
+    customer,
     recognized: (parsed.items || []).length,
     matched: items.length,
     model: usedModel,
