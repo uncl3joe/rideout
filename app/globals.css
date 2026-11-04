@@ -27,6 +27,9 @@ a{color:inherit}
 .brand h1{font-family:var(--disp);font-weight:700;font-size:19px;letter-spacing:.06em;margin:0;line-height:1;text-transform:uppercase}
 .brand h1 span{color:var(--accent)}
 .brand .sub{font-size:10.5px;letter-spacing:.22em;text-transform:uppercase;color:var(--faint);margin-top:3px}
+.brandlogo{height:40px;width:auto;display:block}
+@media(max-width:560px){.brandlogo{height:33px}}
+.loginlogo{height:58px;width:auto;display:block;margin:0 auto 22px}
 .top .spacer{flex:1}
 .who{display:flex;align-items:center;gap:9px}
 .ava{width:32px;height:32px;border-radius:50%;background:var(--raise);border:1px solid var(--line);display:grid;place-items:center;font-family:var(--disp);font-weight:600;color:var(--accent);font-size:13px;flex:none}
