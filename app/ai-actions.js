@@ -1,0 +1,91 @@
+'use server';
+
+import { createClient } from '@/lib/supabase/server';
+
+// Liest einen Werkstatt-Screenshot per Google Gemini aus und ordnet die
+// erkannten Zeilen dem echten Katalog zu. Preise/Logik bleiben in der App.
+export async function readScreenshot({ imageBase64, mimeType }) {
+  const sb = createClient();
+  const {
+    data: { user },
+  } = await sb.auth.getUser();
+  if (!user) return { ok: false, error: 'Nicht eingeloggt.' };
+
+  const key = process.env.GEMINI_API_KEY;
+  if (!key) return { ok: false, error: 'KI-Schlüssel fehlt (GEMINI_API_KEY in Vercel eintragen).' };
+  if (!imageBase64) return { ok: false, error: 'Kein Bild erhalten.' };
+
+  const { data: services } = await sb.from('services').select('name').eq('active', true);
+  const names = (services || []).map((s) => s.name);
+  if (!names.length) return { ok: false, error: 'Katalog ist leer.' };
+
+  const model = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+  const prompt =
+    'Du bekommst einen Screenshot aus einem GTA-Roleplay-Werkstatt-Spiel (eine Auftrags- oder Rechnungsliste). ' +
+    'Erkenne die aufgelisteten Leistungen und ihre Anzahl. Ordne JEDE erkannte Zeile exakt einem Namen aus dieser Liste zu ' +
+    '(benutze ausschließlich diese Schreibweisen):\n' +
+    names.join('\n') +
+    '\n\nGib AUSSCHLIESSLICH gültiges JSON in genau diesem Format zurück, ohne Erklärung:\n' +
+    '{"items":[{"name":"<exakter Name aus der Liste>","qty":<ganze Zahl>}],"total":<Gesamtsumme in Dollar als Zahl, oder 0 wenn nicht sichtbar>}\n' +
+    'Lass Zeilen weg, die zu keinem Namen passen. Wenn eine Leistung mehrfach vorkommt, zähle sie zusammen.';
+
+  let resp;
+  try {
+    resp = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [
+            {
+              parts: [
+                { inline_data: { mime_type: mimeType || 'image/jpeg', data: imageBase64 } },
+                { text: prompt },
+              ],
+            },
+          ],
+          generationConfig: { responseMimeType: 'application/json', temperature: 0 },
+        }),
+      }
+    );
+  } catch {
+    return { ok: false, error: 'KI nicht erreichbar.' };
+  }
+
+  if (!resp.ok) {
+    const t = await resp.text().catch(() => '');
+    return { ok: false, error: 'KI-Fehler ' + resp.status + (t ? ': ' + t.slice(0, 140) : '') };
+  }
+
+  const j = await resp.json();
+  let txt = j?.candidates?.[0]?.content?.parts?.[0]?.text || '';
+  txt = txt.replace(/```json/gi, '').replace(/```/g, '').trim();
+
+  let parsed;
+  try {
+    parsed = JSON.parse(txt);
+  } catch {
+    return { ok: false, error: 'KI-Antwort war nicht lesbar.' };
+  }
+
+  const lower = {};
+  names.forEach((n) => (lower[n.toLowerCase()] = n));
+  const items = [];
+  (parsed.items || []).forEach((it) => {
+    const real = lower[String(it.name || '').toLowerCase().trim()];
+    if (!real) return;
+    const qty = Math.max(1, parseInt(it.qty, 10) || 1);
+    const ex = items.find((x) => x.name === real);
+    if (ex) ex.qty += qty;
+    else items.push({ name: real, qty });
+  });
+
+  return {
+    ok: true,
+    items,
+    total: Math.round(Number(parsed.total) || 0),
+    recognized: (parsed.items || []).length,
+    matched: items.length,
+  };
+}

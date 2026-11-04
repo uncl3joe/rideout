@@ -5,14 +5,20 @@ Next.js + Supabase. Phase 1: Login, rollenbasierte Oberfläche und das Terminal
 
 ---
 
-## Was du brauchst (einmalig)
+## Umgebungsvariablen (in Vercel → Settings → Environment Variables)
 
-Aus deinem Supabase-Projekt die zwei Zugangsdaten:
-**Supabase → Project Settings → Data API (bzw. API)**
+Öffentlich (fürs Frontend):
 - **Project URL**  →  `NEXT_PUBLIC_SUPABASE_URL`
-- **anon public** key  →  `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- **Publishable / anon** key  →  `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
-Der anon-Key darf öffentlich sein – die Row Level Security schützt die Daten.
+Geheim (nur Server – niemals öffentlich; in Vercel einfach normal eintragen):
+- **Secret key** aus Supabase (Settings → API Keys → „Secret keys")  →  `SUPABASE_SERVICE_ROLE_KEY`
+  (nötig, um Mitarbeiter-Logins anzulegen/zu löschen)
+- **Gemini API-Key** (kostenlos auf https://aistudio.google.com/apikey)  →  `GEMINI_API_KEY`
+  (nötig für die KI-Auslesung der Screenshots); optional `GEMINI_MODEL` (Standard: `gemini-2.0-flash`)
+
+Der anon/publishable-Key darf öffentlich sein – die Row Level Security schützt die Daten.
+Die zwei geheimen Keys dürfen das NICHT (keine `NEXT_PUBLIC_`-Präfix).
 
 ---
 
@@ -70,10 +76,8 @@ lib/supabase/          Datenbank-Anbindung (Browser + Server)
 middleware.js          Session + Schutz (ohne Login -> /login)
 ```
 
-Jetzt live und an die echte Datenbank angebunden: Mein Terminal, Übersicht
-(mit Zeitraum-Umschalter), Statistik, Mitarbeiter (Team + Rang vergeben),
-Ausgaben, Verträge, Preise & Katalog (anlegen/bearbeiten/löschen).
+Live und an die echte Datenbank angebunden: Mein Terminal mit KI-Auslesung,
+Übersicht (Zeitraum-Umschalter), Statistik, Mitarbeiter (anlegen, Name/Rang
+bearbeiten, löschen), Ausgaben, Verträge, Preise & Katalog.
 
-Kommt noch: neue Logins direkt in der App anlegen/löschen (braucht einen
-zusätzlichen geheimen Schlüssel), und die öffentliche Homepage mit Fahrzeughandel
-(Phase 3).
+Kommt noch: Phase 3 – öffentliche Homepage mit Fahrzeughandel.

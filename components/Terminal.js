@@ -2,11 +2,30 @@
 
 import { useMemo, useRef, useState } from 'react';
 import { saveOrder } from '@/app/actions';
+import { readScreenshot } from '@/app/ai-actions';
 
 const PROV = 0.3;
 const fmt = (n) => Math.round(n).toLocaleString('de-DE') + ' $';
 const numf = (n) => Math.round(n).toLocaleString('de-DE');
 const CAT_ORDER = ['Motor & Leistung', 'Lackierung', 'Pflege', 'Reparaturen', 'Wartung', 'Optik', 'Arbeitsleistung'];
+
+// Bild verkleinern (für schnellen Upload an die KI).
+function toScaled(dataURL) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = () => {
+      const maxW = 1600;
+      const scale = Math.min(1, maxW / img.width);
+      const cv = document.createElement('canvas');
+      cv.width = Math.round(img.width * scale);
+      cv.height = Math.round(img.height * scale);
+      cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
+      resolve(cv.toDataURL('image/jpeg', 0.82));
+    };
+    img.onerror = () => resolve(dataURL);
+    img.src = dataURL;
+  });
+}
 
 export default function Terminal({ services, mechanicName }) {
   const byName = useMemo(() => {
@@ -15,13 +34,10 @@ export default function Terminal({ services, mechanicName }) {
     return m;
   }, [services]);
 
-  // Services nach Kategorie gruppieren (bevorzugte Reihenfolge zuerst)
   const grouped = useMemo(() => {
     const g = {};
     services.forEach((s) => (g[s.category] = g[s.category] || []).push(s));
-    const keys = CAT_ORDER.filter((k) => g[k]).concat(
-      Object.keys(g).filter((k) => !CAT_ORDER.includes(k))
-    );
+    const keys = CAT_ORDER.filter((k) => g[k]).concat(Object.keys(g).filter((k) => !CAT_ORDER.includes(k)));
     return keys.map((k) => ({ cat: k, items: g[k].slice().sort((a, b) => b.vk - a.vk) }));
   }, [services]);
 
@@ -32,16 +48,16 @@ export default function Terminal({ services, mechanicName }) {
   const [orderDate, setOrderDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [ssum, setSsum] = useState('');
   const [thumb, setThumb] = useState(null);
+  const [reading, setReading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState('');
   const [savedToday, setSavedToday] = useState([]);
-  const fileRef = useRef(null);
   const toastTimer = useRef(null);
 
   function flash(m) {
     setToast(m);
     clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(''), 2800);
+    toastTimer.current = setTimeout(() => setToast(''), 3200);
   }
 
   const calc = useMemo(() => {
@@ -73,12 +89,36 @@ export default function Terminal({ services, mechanicName }) {
     setLines((prev) => prev.filter((_, idx) => idx !== i));
   }
 
+  async function runAI(dataURL) {
+    setReading(true);
+    try {
+      const scaled = await toScaled(dataURL);
+      const base64 = scaled.split(',')[1];
+      const res = await readScreenshot({ imageBase64: base64, mimeType: 'image/jpeg' });
+      if (!res.ok) {
+        flash(res.error || 'KI-Fehler');
+        return;
+      }
+      if (res.items && res.items.length) {
+        setLines(res.items.map((i) => ({ name: i.name, qty: i.qty })));
+        setSsum(res.total ? String(res.total) : '');
+        flash('KI: ' + res.matched + ' Leistung(en) erkannt' + (res.total ? ' · Summe ' + numf(res.total) + ' $' : ''));
+      } else {
+        flash('KI hat nichts Passendes erkannt – bitte manuell hinzufügen');
+      }
+    } catch {
+      flash('KI-Fehler beim Auslesen');
+    } finally {
+      setReading(false);
+    }
+  }
+
   function readImg(file) {
     if (!file) return;
     const r = new FileReader();
     r.onload = (ev) => {
       setThumb(ev.target.result);
-      flash('Bild geladen – in der echten App liest die KI es später aus');
+      runAI(ev.target.result);
     };
     r.readAsDataURL(file);
   }
@@ -104,8 +144,9 @@ export default function Terminal({ services, mechanicName }) {
       cv.height = v.videoHeight;
       cv.getContext('2d').drawImage(v, 0, 0);
       st.getTracks().forEach((t) => t.stop());
-      setThumb(cv.toDataURL('image/png'));
-      flash('Bildschirm-Ausschnitt aufgenommen ✓');
+      const url = cv.toDataURL('image/png');
+      setThumb(url);
+      runAI(url);
     } catch {
       flash('Bildschirmaufnahme vom Browser blockiert oder abgebrochen');
     }
@@ -142,12 +183,14 @@ export default function Terminal({ services, mechanicName }) {
         <section className="card">
           <div className="hd">
             <h2>Neuer Auftrag</h2>
-            <span className="tag">Screenshot → Rechnung</span>
+            <span className="tag">Screenshot → KI → Rechnung</span>
           </div>
           <div className="bd">
             <p className="lbl">Auftrags-Screenshot</p>
             <div className="shot">
-              <div className="thumb">{thumb ? <img src={thumb} alt="" /> : 'kein Bild'}</div>
+              <div className="thumb">
+                {reading ? <span>KI liest …</span> : thumb ? <img src={thumb} alt="" /> : 'kein Bild'}
+              </div>
               <div className="btns">
                 <button className="btn prim" type="button" onClick={() => flash('Mach einfach Strg+V – das Bild landet hier')}>
                   📋 Einfügen
@@ -155,51 +198,38 @@ export default function Terminal({ services, mechanicName }) {
                 <button className="btn" type="button" onClick={capture}>🖥️ Bildschirm aufnehmen</button>
                 <label className="btn" style={{ cursor: 'pointer' }}>
                   📁 Datei
-                  <input
-                    ref={fileRef}
-                    type="file"
-                    accept="image/*"
-                    hidden
-                    onChange={(e) => e.target.files[0] && readImg(e.target.files[0])}
-                  />
+                  <input type="file" accept="image/*" hidden onChange={(e) => e.target.files[0] && readImg(e.target.files[0])} />
                 </label>
-                <span className="hint">Strg+V fügt direkt ein.</span>
+                <span className="hint">Strg+V fügt direkt ein. Die KI liest die Leistungen automatisch aus.</span>
               </div>
             </div>
             <div className="ki-note">
-              In der echten App liest die KI die Leistungen automatisch aus dem Bild. Hier wählst du sie noch manuell.
+              {reading
+                ? 'Die KI liest den Screenshot gerade aus …'
+                : 'Bild einfügen oder aufnehmen → die KI erkennt die Leistungen und füllt den Rechner. Danach kannst du alles noch anpassen.'}
             </div>
 
             <div style={{ marginTop: 16 }}>
-              <p className="lbl">Leistung hinzufügen</p>
+              <p className="lbl">Leistung hinzufügen / korrigieren</p>
               <div className="addrow">
                 <select value={sel} onChange={(e) => setSel(e.target.value)}>
                   <option value="">— Leistung wählen —</option>
                   {grouped.map((g) => (
                     <optgroup key={g.cat} label={g.cat}>
                       {g.items.map((s) => (
-                        <option key={s.id} value={s.name}>
-                          {s.name} · {numf(s.vk)} $
-                        </option>
+                        <option key={s.id} value={s.name}>{s.name} · {numf(s.vk)} $</option>
                       ))}
                     </optgroup>
                   ))}
                 </select>
-                <input
-                  className="qty num"
-                  type="number"
-                  min="1"
-                  value={qty}
-                  onChange={(e) => setQty(e.target.value)}
-                  aria-label="Anzahl"
-                />
+                <input className="qty num" type="number" min="1" value={qty} onChange={(e) => setQty(e.target.value)} aria-label="Anzahl" />
                 <button className="add" type="button" onClick={addLine} aria-label="Hinzufügen">+</button>
               </div>
             </div>
 
             <div className="lines">
               {lines.length === 0 ? (
-                <div className="empty">Noch keine Leistung – oben hinzufügen.</div>
+                <div className="empty">Noch keine Leistung – Screenshot auslesen oder oben hinzufügen.</div>
               ) : (
                 lines.map((l, i) => {
                   const c = byName[l.name] || { vk: 0, category: '' };
@@ -207,20 +237,10 @@ export default function Terminal({ services, mechanicName }) {
                   const adj = base * calc.factor;
                   return (
                     <div className="ln" key={l.name}>
-                      <div className="nm">
-                        {l.name}
-                        <small>{c.category}</small>
-                      </div>
+                      <div className="nm">{l.name}<small>{c.category}</small></div>
                       <div className="q num">×{l.qty}</div>
                       <div className="pr num">
-                        {calc.factor !== 1 ? (
-                          <>
-                            <s>{fmt(base)}</s>
-                            {fmt(adj)}
-                          </>
-                        ) : (
-                          fmt(base)
-                        )}
+                        {calc.factor !== 1 ? (<><s>{fmt(base)}</s>{fmt(adj)}</>) : fmt(base)}
                       </div>
                       <button className="x" onClick={() => removeLine(i)} aria-label="Entfernen">✕</button>
                     </div>
@@ -264,10 +284,7 @@ export default function Terminal({ services, mechanicName }) {
         </section>
 
         <section className="card">
-          <div className="hd">
-            <h2>Heute gespeichert</h2>
-            <span className="tag">diese Sitzung</span>
-          </div>
+          <div className="hd"><h2>Heute gespeichert</h2><span className="tag">diese Sitzung</span></div>
           <div className="bd">
             {savedToday.length === 0 ? (
               <div style={{ color: 'var(--faint)', fontSize: 13 }}>Noch keine Aufträge gespeichert.</div>
