@@ -1,8 +1,10 @@
 'use client';
 
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { createClient } from '@/lib/supabase/client';
 import { saveOrder } from '@/app/actions';
 import { readScreenshot } from '@/app/ai-actions';
+import { periodStartISO } from '@/lib/format';
 
 const PROV = 0.3;
 const fmt = (n) => Math.round(n).toLocaleString('de-DE') + ' $';
@@ -27,7 +29,7 @@ function toScaled(dataURL) {
   });
 }
 
-export default function Terminal({ services, mechanicName }) {
+export default function Terminal({ services, mechanicName, userId }) {
   const byName = useMemo(() => {
     const m = {};
     services.forEach((s) => (m[s.name] = s));
@@ -51,7 +53,7 @@ export default function Terminal({ services, mechanicName }) {
   const [reading, setReading] = useState(false);
   const [busy, setBusy] = useState(false);
   const [toast, setToast] = useState('');
-  const [savedToday, setSavedToday] = useState([]);
+  const [myOrders, setMyOrders] = useState(null);
   const toastTimer = useRef(null);
 
   function flash(m) {
@@ -59,6 +61,36 @@ export default function Terminal({ services, mechanicName }) {
     clearTimeout(toastTimer.current);
     toastTimer.current = setTimeout(() => setToast(''), 3200);
   }
+
+  async function loadMine() {
+    if (!userId) return;
+    const sb = createClient();
+    const { data } = await sb
+      .from('orders')
+      .select('order_date, customer, umsatz, provision, created_at')
+      .eq('mechanic_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(200);
+    setMyOrders(data || []);
+  }
+  useEffect(() => {
+    loadMine();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [userId]);
+
+  const mine = useMemo(() => {
+    if (!myOrders) return null;
+    const bucket = (start) => {
+      const o = myOrders.filter((x) => x.order_date >= start);
+      return { auf: o.length, um: o.reduce((s, x) => s + x.umsatz, 0), prov: o.reduce((s, x) => s + x.provision, 0) };
+    };
+    return {
+      heute: bucket(periodStartISO('heute')),
+      woche: bucket(periodStartISO('woche')),
+      monat: bucket(periodStartISO('monat')),
+      recent: myOrders.slice(0, 8),
+    };
+  }, [myOrders]);
 
   const calc = useMemo(() => {
     let basis = 0;
@@ -161,14 +193,11 @@ export default function Terminal({ services, mechanicName }) {
       flash('Fehler: ' + res.error);
       return;
     }
-    setSavedToday((prev) => [
-      { customer: customer || 'Laufkunde', umsatz: res.umsatz, provision: res.provision, n: lines.length },
-      ...prev,
-    ]);
     setLines([]);
     setCustomer('');
     setSsum('');
     setThumb(null);
+    loadMine();
     flash('Auftrag gespeichert ✓');
   }
 
@@ -283,21 +312,43 @@ export default function Terminal({ services, mechanicName }) {
           </div>
         </section>
 
-        <section className="card">
-          <div className="hd"><h2>Heute gespeichert</h2><span className="tag">diese Sitzung</span></div>
-          <div className="bd">
-            {savedToday.length === 0 ? (
-              <div style={{ color: 'var(--faint)', fontSize: 13 }}>Noch keine Aufträge gespeichert.</div>
-            ) : (
-              savedToday.map((o, i) => (
-                <div className="ln" key={i} style={{ borderRadius: 9, marginBottom: 6 }}>
-                  <div className="nm">{o.customer}<small>{o.n} Leistung(en)</small></div>
-                  <div className="q num">{fmt(o.umsatz)}</div>
-                  <div className="pr num" style={{ color: 'var(--accent)' }}>+{fmt(o.provision)}</div>
-                  <span />
-                </div>
-              ))
-            )}
+        <section>
+          <div className="card">
+            <div className="hd"><h2>Meine Zahlen</h2><span className="tag">live</span></div>
+            <div className="tw">
+              <table className="tbl">
+                <tbody>
+                  <tr><th className="l">Zeitraum</th><th>Aufträge</th><th>Umsatz</th><th>Provision</th></tr>
+                  {[['Heute', 'heute'], ['Woche', 'woche'], ['Monat', 'monat']].map(([lbl, k]) => (
+                    <tr key={k}>
+                      <td className="l">{lbl}</td>
+                      <td className="num">{mine ? mine[k].auf : 0}</td>
+                      <td className="num umc">{fmt(mine ? mine[k].um : 0)}</td>
+                      <td className="num pvc">{fmt(mine ? mine[k].prov : 0)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <div className="card" style={{ marginTop: 18 }}>
+            <div className="hd"><h2>Letzte Aufträge</h2><span className="tag">zuletzt</span></div>
+            <div className="bd">
+              {!mine ? (
+                <div style={{ color: 'var(--faint)', fontSize: 13 }}>Lädt …</div>
+              ) : mine.recent.length === 0 ? (
+                <div style={{ color: 'var(--faint)', fontSize: 13 }}>Noch keine Aufträge.</div>
+              ) : (
+                mine.recent.map((o, i) => (
+                  <div className="ln" key={i} style={{ borderRadius: 9, marginBottom: 6 }}>
+                    <div className="nm">{o.customer || 'Laufkunde'}<small>{o.order_date}</small></div>
+                    <div className="q num">{fmt(o.umsatz)}</div>
+                    <div className="pr num" style={{ color: 'var(--accent)' }}>+{fmt(o.provision)}</div>
+                    <span />
+                  </div>
+                ))
+              )}
+            </div>
           </div>
         </section>
       </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import Terminal from '@/components/Terminal';
@@ -51,6 +51,13 @@ export default function Shell({ profile, services }) {
   const role = profile.role;
   const items = NAV.filter((n) => n.can(role));
   const [view, setView] = useState('terminal');
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [pwOpen, setPwOpen] = useState(false);
+  const [pw1, setPw1] = useState('');
+  const [pw2, setPw2] = useState('');
+  const [pwBusy, setPwBusy] = useState(false);
+  const [pwMsg, setPwMsg] = useState('');
+  const [toast, setToast] = useState('');
 
   // Nach Gruppen ordnen (Reihenfolge bleibt erhalten)
   const groups = [];
@@ -70,6 +77,29 @@ export default function Shell({ profile, services }) {
     router.refresh();
   }
 
+  useEffect(() => {
+    if (!menuOpen) return;
+    const close = () => setMenuOpen(false);
+    document.addEventListener('click', close);
+    return () => document.removeEventListener('click', close);
+  }, [menuOpen]);
+
+  async function changePw() {
+    if (pw1.length < 6) return setPwMsg('Mindestens 6 Zeichen.');
+    if (pw1 !== pw2) return setPwMsg('Passwörter stimmen nicht überein.');
+    setPwBusy(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.updateUser({ password: pw1 });
+    setPwBusy(false);
+    if (error) return setPwMsg('Fehler: ' + error.message);
+    setPwMsg('');
+    setPw1('');
+    setPw2('');
+    setPwOpen(false);
+    setToast('Passwort geändert ✓');
+    setTimeout(() => setToast(''), 2800);
+  }
+
   return (
     <>
       <header className="top">
@@ -81,14 +111,22 @@ export default function Shell({ profile, services }) {
           </div>
         </div>
         <div className="spacer" />
-        <div className="who">
-          <div className="ava">{initials(profile.name)}</div>
-          <div>
-            <div className="nm">{profile.name}</div>
-            <div className="rl">{ROLE_LABEL[role] || role}</div>
-          </div>
+        <div className="usermenu" onClick={(e) => e.stopPropagation()}>
+          <button className="whobtn" onClick={() => setMenuOpen((o) => !o)}>
+            <div className="ava">{initials(profile.name)}</div>
+            <div className="whotxt">
+              <div className="nm">{profile.name}</div>
+              <div className="rl">{ROLE_LABEL[role] || role}</div>
+            </div>
+            <span className="caret">▾</span>
+          </button>
+          {menuOpen && (
+            <div className="menu">
+              <button onClick={() => { setMenuOpen(false); setPwOpen(true); }}>Passwort ändern</button>
+              <button onClick={logout}>Abmelden</button>
+            </div>
+          )}
         </div>
-        <button className="linkbtn" onClick={logout}>Abmelden</button>
       </header>
 
       <div className="app">
@@ -111,7 +149,7 @@ export default function Shell({ profile, services }) {
         </aside>
 
         <main className="content">
-          {view === 'terminal' && <Terminal services={services} mechanicName={profile.name} />}
+          {view === 'terminal' && <Terminal services={services} mechanicName={profile.name} userId={profile.id} />}
           {view === 'uebersicht' && <Uebersicht />}
           {view === 'statistik' && <Statistik />}
           {view === 'mitarbeiter' && <Mitarbeiter role={role} />}
@@ -135,6 +173,25 @@ export default function Shell({ profile, services }) {
           )}
         </main>
       </div>
+
+      {pwOpen && (
+        <div className="modal-backdrop" onClick={() => setPwOpen(false)}>
+          <div className="modal" onClick={(e) => e.stopPropagation()}>
+            <h3>Passwort ändern</h3>
+            <div className="field"><label>Neues Passwort</label><input type="password" value={pw1} onChange={(e) => setPw1(e.target.value)} /></div>
+            <div className="field"><label>Wiederholen</label><input type="password" value={pw2} onChange={(e) => setPw2(e.target.value)} /></div>
+            <div className="err">{pwMsg}</div>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
+              <button className="btn" onClick={() => setPwOpen(false)}>Abbrechen</button>
+              <button className="save" style={{ marginTop: 0, width: 'auto', padding: '10px 18px' }} onClick={changePw} disabled={pwBusy}>
+                {pwBusy ? '…' : 'Speichern'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className={'toast' + (toast ? ' on' : '')}>{toast}</div>
     </>
   );
 }

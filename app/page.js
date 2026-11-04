@@ -26,6 +26,7 @@ export default async function Home() {
     .order('vk', { ascending: false });
 
   const safeProfile = {
+    id: user.id,
     name: profile?.name || user.email,
     role: profile?.role || 'mechaniker',
     email: user.email,
