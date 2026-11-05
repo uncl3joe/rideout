@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { saveOrder } from '@/app/actions';
 import { readScreenshot } from '@/app/ai-actions';
-import { periodStartISO } from '@/lib/format';
+import { periodStartISO, todayISO } from '@/lib/format';
 
 const PROV = 0.3;
 const fmt = (n) => Math.round(n).toLocaleString('de-DE') + ' $';
@@ -57,7 +57,7 @@ export default function Terminal({ services, mechanicName, userId }) {
   const [qty, setQty] = useState(1);
   const [lines, setLines] = useState([]);
   const [customer, setCustomer] = useState('');
-  const [orderDate, setOrderDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [orderDate, setOrderDate] = useState(() => todayISO());
   const [ssum, setSsum] = useState('');
   const [thumb, setThumb] = useState(null);
   const [reading, setReading] = useState(false);
@@ -152,7 +152,7 @@ export default function Terminal({ services, mechanicName, userId }) {
     try {
       const scaled = await toScaled(dataURL);
       const base64 = scaled.split(',')[1];
-      const res = await readScreenshot({ imageBase64: base64, mimeType: 'image/jpeg' });
+      const res = await readScreenshot({ imageBase64: base64, mimeType: 'image/jpeg', mechanicName });
       if (!res.ok) {
         flash(res.error || 'KI-Fehler');
         return;
@@ -227,7 +227,7 @@ export default function Terminal({ services, mechanicName, userId }) {
   async function save() {
     if (!lines.length) return;
     setBusy(true);
-    const res = await saveOrder({ customer, orderDate, screenshotSum: Number(ssum) || 0, items: lines });
+    const res = await saveOrder({ customer, orderDate: orderDate || todayISO(), screenshotSum: Number(ssum) || 0, items: lines });
     setBusy(false);
     if (!res.ok) {
       flash('Fehler: ' + res.error);

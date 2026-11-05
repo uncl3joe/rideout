@@ -4,7 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 
 // Liest einen Werkstatt-Screenshot per Google Gemini aus und ordnet die
 // erkannten Zeilen dem echten Katalog zu. Preise/Logik bleiben in der App.
-export async function readScreenshot({ imageBase64, mimeType }) {
+export async function readScreenshot({ imageBase64, mimeType, mechanicName }) {
   const sb = createClient();
   const {
     data: { user },
@@ -14,6 +14,8 @@ export async function readScreenshot({ imageBase64, mimeType }) {
   const key = process.env.GEMINI_API_KEY;
   if (!key) return { ok: false, error: 'KI-Schlüssel fehlt (GEMINI_API_KEY in Vercel eintragen).' };
   if (!imageBase64) return { ok: false, error: 'Kein Bild erhalten.' };
+
+  const mech = String(mechanicName || '').trim();
 
   const { data: services } = await sb.from('services').select('name').eq('active', true);
   const names = (services || []).map((s) => s.name);
@@ -45,7 +47,12 @@ export async function readScreenshot({ imageBase64, mimeType }) {
     names.join('\n') +
     '\n\nGib AUSSCHLIESSLICH gültiges JSON in genau diesem Format zurück, ohne Erklärung:\n' +
     '{"items":[{"name":"<exakter Name aus der Liste>","qty":<ganze Zahl>}],"total":<Gesamtsumme in Dollar als Zahl, oder 0 wenn nicht sichtbar>,"kunde":"<Kundenname falls im Bild sichtbar, sonst leerer String>","kennzeichen":"<Kfz-Kennzeichen falls sichtbar, sonst leerer String>"}\n' +
-    'Lass Zeilen weg, die zu keinem Namen passen. Wenn eine Leistung mehrfach vorkommt, zähle sie zusammen.';
+    'Lass Zeilen weg, die zu keinem Namen passen. Wenn eine Leistung mehrfach vorkommt, zähle sie zusammen.' +
+    (mech
+      ? '\n\nWICHTIG zum Kunden: Der Spielername des Werkstatt-Mitarbeiters ist oft im Bild sichtbar (HUD, Nametag, über dem Charakter). Dieser Name lautet "' +
+        mech +
+        '" und ist NICHT der Kunde — gib ihn niemals als "kunde" zurück. Der Kunde ist die Person, für die der Auftrag/die Rechnung ist (meist direkt beim Fahrzeug bzw. Kennzeichen). Wenn kein eindeutiger Kundenname erkennbar ist, lass "kunde" leer.'
+      : '');
 
   const reqBody = JSON.stringify({
     contents: [
@@ -114,8 +121,10 @@ export async function readScreenshot({ imageBase64, mimeType }) {
     else items.push({ name: real, qty });
   });
 
-  const kunde = String(parsed.kunde || '').trim();
+  let kunde = String(parsed.kunde || '').trim();
   const kennz = String(parsed.kennzeichen || '').trim();
+  // Sicherheitsnetz: niemals den Mitarbeiter-Namen als Kunde übernehmen.
+  if (mech && kunde && kunde.toLowerCase() === mech.toLowerCase()) kunde = '';
   const customer = kunde && kennz ? kunde + ' (' + kennz + ')' : kunde || kennz || '';
 
   return {
