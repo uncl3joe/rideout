@@ -15,6 +15,7 @@ export default function Auftraege({ role }) {
   const [periodKey, setPeriodKey] = useState(() => buildPeriods('woche')[0].key);
   const [mech, setMech] = useState('');
   const [q, setQ] = useState('');
+  const [showAll, setShowAll] = useState(false);
   const [msg, setMsg] = useState('');
   const [edit, setEdit] = useState(null); // { id, customer, orderDate, screenshotSum, items:[{name,qty}] }
   const [busy, setBusy] = useState(false);
@@ -54,12 +55,11 @@ export default function Auftraege({ role }) {
     const qq = q.toLowerCase().trim();
     return orders.filter(
       (o) =>
-        o.order_date >= sel.startISO &&
-        o.order_date < sel.endISO &&
+        (showAll || (o.order_date >= sel.startISO && o.order_date < sel.endISO)) &&
         (!mech || o.mechanic_id === mech) &&
         (!qq || (o.customer || '').toLowerCase().includes(qq) || nameOf(o).toLowerCase().includes(qq))
     );
-  }, [orders, sel, mech, q, profiles]);
+  }, [orders, sel, mech, q, profiles, showAll]);
 
   const sums = useMemo(() => {
     const um = rows.reduce((s, o) => s + (o.umsatz || 0), 0);
@@ -136,10 +136,16 @@ export default function Auftraege({ role }) {
       <div className="vhead">
         <h2>Aufträge</h2>
         <span className="vs">{canEdit ? 'Alle Aufträge bearbeiten & löschen' : 'Alle Aufträge (nur Ansicht)'}</span>
-        <Seg value={gran} onChange={changeGran} />
-        <select className="psel" value={periodKey} onChange={(e) => setPeriodKey(e.target.value)} aria-label="Zeitraum wählen">
-          {opts.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
-        </select>
+        {!showAll && <Seg value={gran} onChange={changeGran} />}
+        {!showAll && (
+          <select className="psel" value={periodKey} onChange={(e) => setPeriodKey(e.target.value)} aria-label="Zeitraum wählen">
+            {opts.map((o) => <option key={o.key} value={o.key}>{o.label}</option>)}
+          </select>
+        )}
+        <button className="btn" style={{ padding: '7px 12px', fontSize: 12.5 }} onClick={() => setShowAll((v) => !v)}>
+          {showAll ? 'Zeitraum' : 'Alle anzeigen'}
+        </button>
+        <button className="btn" style={{ padding: '7px 12px', fontSize: 12.5 }} onClick={load}>Aktualisieren</button>
       </div>
 
       <div className="fields" style={{ gridTemplateColumns: '1fr 1fr', maxWidth: 560, marginTop: 0, marginBottom: 14 }}>
@@ -158,7 +164,7 @@ export default function Auftraege({ role }) {
 
       <div className="card">
         <div className="hd">
-          <h2>{sel?.label}</h2>
+          <h2>{showAll ? 'Alle Aufträge' : sel?.label}</h2>
           <span className="tag">{sums.n} Aufträge · Umsatz {fmt(sums.um)}</span>
         </div>
         <div className="tw">

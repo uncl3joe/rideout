@@ -66,10 +66,12 @@ export async function readScreenshot({ imageBase64, mimeType, mechanicName }) {
     '\n\nGib AUSSCHLIESSLICH gültiges JSON in genau diesem Format zurück, ohne Erklärung:\n' +
     '{"items":[{"name":"<exakter Name aus der Liste>","qty":<ganze Zahl>}],"total":<Gesamtsumme in Dollar als Zahl, oder 0 wenn nicht sichtbar>,"kunde":"<Kundenname falls im Bild sichtbar, sonst leerer String>","kennzeichen":"<Kfz-Kennzeichen falls sichtbar, sonst leerer String>"}\n' +
     'Lass Zeilen weg, die zu keinem Namen passen. Wenn eine Leistung mehrfach vorkommt, zähle sie zusammen.' +
+    '\n\nKunde: Der Kundenname ist der Fahrzeughalter bzw. die Person, für die die Rechnung ist. Er steht meist oben auf der Rechnung, beim Fahrzeug oder neben dem Kennzeichen. Lies ihn aus, sobald er irgendwie erkennbar ist, und gib Vor- und Nachnamen zusammen an.' +
+    '\n\nKennzeichen: Lies es Zeichen für Zeichen sorgfältig. Verwechsle dabei NICHT großes I, kleines l und die Ziffer 1, und auch nicht den Buchstaben O und die Ziffer 0. GTA-Kennzeichen bestehen meist aus genau 8 Zeichen (Großbuchstaben A–Z und Ziffern 0–9), ohne Leer- oder Sonderzeichen.' +
     (staff.length
-      ? '\n\nWICHTIG zum Kunden: Folgende Namen sind WERKSTATT-MITARBEITER, nicht Kunden. Sie stehen oft im Bild (HUD, Nametag, über dem Charakter). Gib KEINEN dieser Namen als "kunde" oder "kennzeichen" zurück:\n' +
+      ? '\n\nWICHTIG: Folgende Namen sind WERKSTATT-MITARBEITER, nicht Kunden. Sie stehen oft im Bild (HUD, Nametag, über dem Charakter). Gib KEINEN dieser Namen als "kunde" oder "kennzeichen" zurück, aber unterdrücke deswegen keinen echten Kundennamen:\n' +
         staff.join('\n') +
-        '\nDer Kunde ist die Person, für die der Auftrag bzw. die Rechnung ist (meist direkt beim Fahrzeug oder Kennzeichen). Wenn kein eindeutiger Kundenname erkennbar ist, lass "kunde" leer.'
+        '\nWenn ausschließlich Mitarbeiter sichtbar sind und kein echter Kunde erkennbar ist, lass "kunde" leer.'
       : '');
 
   const reqBody = JSON.stringify({

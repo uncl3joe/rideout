@@ -58,6 +58,7 @@ export default function Terminal({ services, mechanicName, userId }) {
   const [lines, setLines] = useState([]);
   const [customer, setCustomer] = useState('');
   const [orderDate, setOrderDate] = useState(() => todayISO());
+  const [dateTouched, setDateTouched] = useState(false);
   const [ssum, setSsum] = useState('');
   const [thumb, setThumb] = useState(null);
   const [reading, setReading] = useState(false);
@@ -87,6 +88,22 @@ export default function Terminal({ services, mechanicName, userId }) {
     loadMine();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [userId]);
+
+  // Datum frisch halten: wenn der Tab länger offen ist und du zurückkommst
+  // (z. B. aus GTA), wird das Datum wieder auf heute gesetzt – außer du hast
+  // es bewusst selbst geändert. Verhindert, dass Aufträge mit altem Datum
+  // gespeichert werden und dann aus "Heute"/"Diese Woche" fallen.
+  useEffect(() => {
+    const refresh = () => {
+      if (!dateTouched && !document.hidden) setOrderDate(todayISO());
+    };
+    window.addEventListener('focus', refresh);
+    document.addEventListener('visibilitychange', refresh);
+    return () => {
+      window.removeEventListener('focus', refresh);
+      document.removeEventListener('visibilitychange', refresh);
+    };
+  }, [dateTouched]);
 
   const mine = useMemo(() => {
     if (!myOrders) return null;
@@ -226,8 +243,10 @@ export default function Terminal({ services, mechanicName, userId }) {
 
   async function save() {
     if (!lines.length) return;
+    // Datum frisch nehmen, außer bewusst geändert – nie ein altes "offenes" Datum.
+    const useDate = dateTouched ? orderDate || todayISO() : todayISO();
     setBusy(true);
-    const res = await saveOrder({ customer, orderDate: orderDate || todayISO(), screenshotSum: Number(ssum) || 0, items: lines });
+    const res = await saveOrder({ customer, orderDate: useDate, screenshotSum: Number(ssum) || 0, items: lines });
     setBusy(false);
     if (!res.ok) {
       flash('Fehler: ' + res.error);
@@ -237,6 +256,8 @@ export default function Terminal({ services, mechanicName, userId }) {
     setCustomer('');
     setSsum('');
     setThumb(null);
+    setOrderDate(todayISO());
+    setDateTouched(false);
     loadMine();
     flash('Auftrag gespeichert ✓');
   }
@@ -333,7 +354,7 @@ export default function Terminal({ services, mechanicName, userId }) {
               </div>
               <div className="field">
                 <label htmlFor="datum">Datum</label>
-                <input id="datum" type="date" value={orderDate} onChange={(e) => setOrderDate(e.target.value)} />
+                <input id="datum" type="date" value={orderDate} onChange={(e) => { setOrderDate(e.target.value); setDateTouched(true); }} />
               </div>
               <div className="field f3">
                 <label htmlFor="ssum">Screenshot-Summe (optional – passt die Preise automatisch an)</label>
