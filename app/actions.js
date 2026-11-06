@@ -15,6 +15,10 @@ export async function saveOrder({ customer, orderDate, screenshotSum, items }) {
   if (!user) return { ok: false, error: 'Nicht eingeloggt.' };
   if (!items || !items.length) return { ok: false, error: 'Keine Positionen im Auftrag.' };
 
+  // Eigener Provisionssatz + Name (für den Namens-Schnappschuss am Auftrag).
+  const { data: me } = await supabase.from('profiles').select('name, provision_rate').eq('id', user.id).single();
+  const rate = me?.provision_rate != null ? Number(me.provision_rate) : PROV;
+
   const names = items.map((i) => i.name);
   const { data: svc, error: svcErr } = await supabase
     .from('services')
@@ -49,12 +53,13 @@ export async function saveOrder({ customer, orderDate, screenshotSum, items }) {
   const factor = ssum > 0 && basis > 0 ? ssum / basis : 1;
   const umsatz = Math.round(basis * factor);
   const reingewinn = umsatz - material;
-  const provision = Math.round(reingewinn * PROV);
+  const provision = Math.round(reingewinn * rate);
 
   const { data: order, error } = await supabase
     .from('orders')
     .insert({
       mechanic_id: user.id,
+      mechanic_name: me?.name || null,
       customer: customer || '',
       order_date: orderDate || new Date().toISOString().slice(0, 10),
       screenshot_sum: ssum || null,

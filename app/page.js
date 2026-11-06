@@ -18,6 +18,19 @@ export default async function Home() {
     .eq('id', user.id)
     .single();
 
+  // Deaktivierte/gelöschte Mitarbeiter sofort ausloggen. Bewusst als eigener,
+  // fehlertoleranter Check: fehlt die Spalte (SQL noch nicht eingespielt),
+  // bleibt der Login/die Rolle unangetastet. Kein try/catch um redirect().
+  const { data: act, error: actErr } = await supabase
+    .from('profiles')
+    .select('active')
+    .eq('id', user.id)
+    .single();
+  if (!actErr && act && act.active === false) {
+    await supabase.auth.signOut();
+    redirect('/login');
+  }
+
   const { data: services } = await supabase
     .from('services')
     .select('id, name, category, vk, material')

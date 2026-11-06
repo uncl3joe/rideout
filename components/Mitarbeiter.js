@@ -2,15 +2,16 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { createMechanic, deleteMechanic } from '@/app/admin-actions';
+import { createMechanic, deleteMechanicPlaceholder, setMechanicActive, setProvisionRate } from '@/app/admin-actions';
 import { fmt, ROLES, ROLE_LABEL, roleBadgeClass, initials } from '@/lib/format';
 
-export default function Mitarbeiter({ role }) {
+export default function Mitarbeiter({ role, myId }) {
   const admin = role === 'inhaber';
   const [profiles, setProfiles] = useState(null);
   const [orders, setOrders] = useState([]);
   const [msg, setMsg] = useState('');
   const [busy, setBusy] = useState(false);
+  const [showFormer, setShowFormer] = useState(false);
   const [nf, setNf] = useState({ name: '', email: '', password: '', role: 'mechaniker' });
 
   function flash(m) {
@@ -21,7 +22,7 @@ export default function Mitarbeiter({ role }) {
   async function load() {
     const sb = createClient();
     const [p, o] = await Promise.all([
-      sb.from('profiles').select('id, name, role').order('name'),
+      sb.from('profiles').select('id, name, role, active, archived, provision_rate').order('name'),
       sb.from('orders').select('mechanic_id, umsatz'),
     ]);
     setProfiles(p.data || []);
@@ -41,6 +42,15 @@ export default function Mitarbeiter({ role }) {
     return m;
   }, [orders]);
 
+  const visible = useMemo(() => {
+    if (!profiles) return null;
+    return profiles.filter((p) => (showFormer ? true : p.active !== false));
+  }, [profiles, showFormer]);
+
+  const formerCount = useMemo(() => (profiles || []).filter((p) => p.active === false).length, [profiles]);
+
+  const statusOf = (p) => (p.archived ? 'Ehemalig' : p.active === false ? 'Inaktiv' : 'Aktiv');
+
   async function changeRole(id, newRole) {
     const sb = createClient();
     const { error } = await sb.from('profiles').update({ role: newRole }).eq('id', id);
@@ -59,6 +69,17 @@ export default function Mitarbeiter({ role }) {
     else flash('Name gespeichert ✓');
   }
 
+  function editRate(id, pct) {
+    setProfiles((prev) => prev.map((p) => (p.id === id ? { ...p, provision_rate: pct === '' ? '' : Number(pct) / 100 } : p)));
+  }
+  async function commitRate(id, pct) {
+    const r = Math.min(100, Math.max(0, Math.round(Number(pct) || 0))) / 100;
+    const res = await setProvisionRate({ id, rate: r });
+    if (!res.ok) return flash('Fehler: ' + res.error);
+    setProfiles((prev) => prev.map((p) => (p.id === id ? { ...p, provision_rate: r } : p)));
+    flash('Provisionssatz gespeichert ✓');
+  }
+
   async function add() {
     if (!nf.name.trim() || !nf.email.trim() || !nf.password) return flash('Name, E-Mail und Passwort angeben.');
     setBusy(true);
@@ -70,22 +91,33 @@ export default function Mitarbeiter({ role }) {
     load();
   }
 
-  async function remove(id, name) {
-    if (!confirm('„' + (name || 'Mitarbeiter') + '" wirklich löschen? Der Login wird endgültig entfernt.')) return;
-    const res = await deleteMechanic({ id });
+  async function toggleActive(p) {
+    const res = await setMechanicActive({ id: p.id, active: p.active === false });
     if (!res.ok) return flash('Fehler: ' + res.error);
-    setProfiles((prev) => prev.filter((p) => p.id !== id));
-    flash('Mitarbeiter gelöscht');
+    flash(p.active === false ? 'Mitarbeiter aktiviert ✓' : 'Mitarbeiter deaktiviert');
+    load();
+  }
+
+  async function removePlaceholder(p) {
+    if (!confirm('„' + (p.name || 'Mitarbeiter') + '" endgültig löschen? Der Login wird entfernt, die Zahlen bleiben als Platzhalter erhalten.')) return;
+    const res = await deleteMechanicPlaceholder({ id: p.id });
+    if (!res.ok) return flash('Fehler: ' + res.error);
+    flash('Mitarbeiter gelöscht (Platzhalter bleibt)');
+    load();
   }
 
   const rights = [
     ['Eigenes Terminal', 'alle Ränge'],
-    ['Verträge', 'Manager, Werkstattleitung, Inhaber'],
-    ['Autohandel (Phase 3)', 'Manager, Werkstattleitung, Inhaber'],
+    ['Aufträge ansehen', 'Werkstattleitung, Inhaber'],
+    ['Verträge ansehen', 'Manager, Werkstattleitung, Inhaber'],
+    ['Autohandel', 'Manager, Werkstattleitung, Inhaber'],
     ['Übersicht + Statistik', 'Werkstattleitung, Inhaber'],
-    ['Mitarbeiter + Ausgaben', 'Werkstattleitung, Inhaber'],
-    ['Mitarbeiter verwalten + Katalog', 'Inhaber'],
+    ['Aufträge / Ausgaben / Verträge bearbeiten', 'nur Inhaber'],
+    ['Ausgaben + Provisionen', 'nur Inhaber'],
+    ['Mitarbeiter verwalten + Katalog', 'nur Inhaber'],
   ];
+
+  const pct = (r) => (r === '' || r == null ? '' : Math.round(Number(r) * 100));
 
   return (
     <>
@@ -112,56 +144,106 @@ export default function Mitarbeiter({ role }) {
               </button>
             </div>
             <div style={{ fontSize: 11.5, color: 'var(--faint)', marginTop: 8 }}>
-              Der Mitarbeiter meldet sich dann mit dieser E-Mail und dem Passwort an. Du kannst Namen und Rang jederzeit unten ändern.
+              Der Mitarbeiter meldet sich mit dieser E-Mail und dem Passwort an. Name, Rang und Provisionssatz kannst du unten jederzeit ändern.
             </div>
           </div>
         </div>
       )}
 
-      {!profiles ? (
+      {!visible ? (
         <div className="soon"><p>Lädt …</p></div>
       ) : (
         <>
           <div className="card">
-            <div className="hd"><h2>Team</h2><span className="tag">{profiles.length} Mitarbeiter</span></div>
+            <div className="hd">
+              <h2>Team</h2>
+              <span className="tag">{visible.length} angezeigt{formerCount ? ' · ' + formerCount + ' ehemalig' : ''}</span>
+            </div>
+
+            {formerCount > 0 && (
+              <div style={{ padding: '2px 16px 10px' }}>
+                <label style={{ fontSize: 12.5, color: 'var(--mut)', display: 'inline-flex', gap: 8, alignItems: 'center', cursor: 'pointer' }}>
+                  <input type="checkbox" checked={showFormer} onChange={(e) => setShowFormer(e.target.checked)} />
+                  Ehemalige / deaktivierte anzeigen
+                </label>
+              </div>
+            )}
+
             <div className="tw">
               <table className="tbl">
                 <tbody>
                   <tr>
                     <th className="l">Name</th>
                     <th className="l">Rang</th>
+                    {admin && <th>Provision %</th>}
                     <th>Aufträge</th>
                     <th>Umsatz gesamt</th>
+                    <th className="l">Status</th>
                     {admin && <th></th>}
                   </tr>
-                  {profiles.map((p) => (
-                    <tr key={p.id}>
-                      <td className="l">
-                        <div className="who2">
-                          <div className="ava">{initials(p.name)}</div>
-                          {admin ? (
-                            <input className="rolesel" style={{ width: 180 }} value={p.name || ''}
-                              onChange={(e) => editName(p.id, e.target.value)}
-                              onBlur={(e) => commitName(p.id, e.target.value)} />
+                  {visible.map((p) => {
+                    const inactive = p.active === false;
+                    const self = p.id === myId;
+                    return (
+                      <tr key={p.id} style={inactive ? { opacity: 0.6 } : undefined}>
+                        <td className="l">
+                          <div className="who2">
+                            <div className="ava">{initials(p.name)}</div>
+                            {admin && !inactive ? (
+                              <input className="rolesel" style={{ width: 170 }} value={p.name || ''}
+                                onChange={(e) => editName(p.id, e.target.value)}
+                                onBlur={(e) => commitName(p.id, e.target.value)} />
+                            ) : (
+                              <div>{p.name || '—'}</div>
+                            )}
+                          </div>
+                        </td>
+                        <td className="l">
+                          {admin && !inactive ? (
+                            <select className="rolesel" value={p.role} onChange={(e) => changeRole(p.id, e.target.value)}>
+                              {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
+                            </select>
                           ) : (
-                            <div>{p.name || '—'}</div>
+                            <span className={'badge ' + roleBadgeClass(p.role)}>{ROLE_LABEL[p.role] || p.role}</span>
                           )}
-                        </div>
-                      </td>
-                      <td className="l">
-                        {admin ? (
-                          <select className="rolesel" value={p.role} onChange={(e) => changeRole(p.id, e.target.value)}>
-                            {ROLES.map((r) => <option key={r} value={r}>{ROLE_LABEL[r]}</option>)}
-                          </select>
-                        ) : (
-                          <span className={'badge ' + roleBadgeClass(p.role)}>{ROLE_LABEL[p.role] || p.role}</span>
+                        </td>
+                        {admin && (
+                          <td>
+                            {inactive ? (
+                              <span style={{ color: 'var(--faint)' }}>{pct(p.provision_rate)}%</span>
+                            ) : (
+                              <input className="vkin" type="number" min="0" max="100" value={pct(p.provision_rate)}
+                                onChange={(e) => editRate(p.id, e.target.value)}
+                                onBlur={(e) => commitRate(p.id, e.target.value)} />
+                            )}
+                          </td>
                         )}
-                      </td>
-                      <td className="num">{agg[p.id]?.auf || 0}</td>
-                      <td className="num umc">{fmt(agg[p.id]?.um || 0)}</td>
-                      {admin && <td><button className="xdel" title="Löschen" onClick={() => remove(p.id, p.name)}>✕</button></td>}
-                    </tr>
-                  ))}
+                        <td className="num">{agg[p.id]?.auf || 0}</td>
+                        <td className="num umc">{fmt(agg[p.id]?.um || 0)}</td>
+                        <td className="l">
+                          <span className={'badge ' + (p.archived ? 'pra' : inactive ? 'mec' : 'lei')}>{statusOf(p)}</span>
+                        </td>
+                        {admin && (
+                          <td>
+                            {self ? (
+                              <span style={{ fontSize: 11.5, color: 'var(--faint)' }}>du</span>
+                            ) : (
+                              <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
+                                {inactive ? (
+                                  <button className="btn" style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => toggleActive(p)}>Aktivieren</button>
+                                ) : (
+                                  <>
+                                    <button className="btn" style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => toggleActive(p)}>Deaktivieren</button>
+                                    <button className="xdel" title="Löschen (Platzhalter)" onClick={() => removePlaceholder(p)}>✕</button>
+                                  </>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        )}
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

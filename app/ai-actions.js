@@ -1,6 +1,12 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+
+// Normalisiert Namen für den Vergleich (Groß/Klein + Mehrfach-Leerzeichen egal).
+function norm(s) {
+  return String(s || '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
 
 // Liest einen Werkstatt-Screenshot per Google Gemini aus und ordnet die
 // erkannten Zeilen dem echten Katalog zu. Preise/Logik bleiben in der App.
@@ -15,11 +21,23 @@ export async function readScreenshot({ imageBase64, mimeType, mechanicName }) {
   if (!key) return { ok: false, error: 'KI-Schlüssel fehlt (GEMINI_API_KEY in Vercel eintragen).' };
   if (!imageBase64) return { ok: false, error: 'Kein Bild erhalten.' };
 
-  const mech = String(mechanicName || '').trim();
-
   const { data: services } = await sb.from('services').select('name').eq('active', true);
   const names = (services || []).map((s) => s.name);
   if (!names.length) return { ok: false, error: 'Katalog ist leer.' };
+
+  // ALLE Mitarbeiternamen holen (über den Service-Key, damit es auch für
+  // normale Mechaniker funktioniert – die dürfen sonst nur sich selbst sehen).
+  // Diese Namen dürfen nie als Kunde oder Kennzeichen durchgehen.
+  let staff = [];
+  const admin = createAdminClient();
+  if (admin) {
+    const { data: team } = await admin.from('profiles').select('name');
+    staff = (team || []).map((t) => t.name).filter((n) => n && n.trim());
+  }
+  // Sicherheits-Fallback, falls der Service-Key mal fehlt: wenigstens der
+  // eigene Name (wie bisher).
+  if (!staff.length && mechanicName) staff = [mechanicName];
+  const staffSet = new Set(staff.map(norm));
 
   // Dieselbe priorisierte Modell-Kette wie im Google-Sheet-Rechner:
   // Flash-Lite zuerst (schnell, hohes Limit), dann Flash, dann Pro als Reserve.
@@ -48,10 +66,10 @@ export async function readScreenshot({ imageBase64, mimeType, mechanicName }) {
     '\n\nGib AUSSCHLIESSLICH gültiges JSON in genau diesem Format zurück, ohne Erklärung:\n' +
     '{"items":[{"name":"<exakter Name aus der Liste>","qty":<ganze Zahl>}],"total":<Gesamtsumme in Dollar als Zahl, oder 0 wenn nicht sichtbar>,"kunde":"<Kundenname falls im Bild sichtbar, sonst leerer String>","kennzeichen":"<Kfz-Kennzeichen falls sichtbar, sonst leerer String>"}\n' +
     'Lass Zeilen weg, die zu keinem Namen passen. Wenn eine Leistung mehrfach vorkommt, zähle sie zusammen.' +
-    (mech
-      ? '\n\nWICHTIG zum Kunden: Der Spielername des Werkstatt-Mitarbeiters ist oft im Bild sichtbar (HUD, Nametag, über dem Charakter). Dieser Name lautet "' +
-        mech +
-        '" und ist NICHT der Kunde — gib ihn niemals als "kunde" zurück. Der Kunde ist die Person, für die der Auftrag/die Rechnung ist (meist direkt beim Fahrzeug bzw. Kennzeichen). Wenn kein eindeutiger Kundenname erkennbar ist, lass "kunde" leer.'
+    (staff.length
+      ? '\n\nWICHTIG zum Kunden: Folgende Namen sind WERKSTATT-MITARBEITER, nicht Kunden. Sie stehen oft im Bild (HUD, Nametag, über dem Charakter). Gib KEINEN dieser Namen als "kunde" oder "kennzeichen" zurück:\n' +
+        staff.join('\n') +
+        '\nDer Kunde ist die Person, für die der Auftrag bzw. die Rechnung ist (meist direkt beim Fahrzeug oder Kennzeichen). Wenn kein eindeutiger Kundenname erkennbar ist, lass "kunde" leer.'
       : '');
 
   const reqBody = JSON.stringify({
@@ -122,9 +140,11 @@ export async function readScreenshot({ imageBase64, mimeType, mechanicName }) {
   });
 
   let kunde = String(parsed.kunde || '').trim();
-  const kennz = String(parsed.kennzeichen || '').trim();
-  // Sicherheitsnetz: niemals den Mitarbeiter-Namen als Kunde übernehmen.
-  if (mech && kunde && kunde.toLowerCase() === mech.toLowerCase()) kunde = '';
+  let kennz = String(parsed.kennzeichen || '').trim();
+  // Sicherheitsnetz: niemals einen Mitarbeiter-Namen als Kunde oder Kennzeichen
+  // übernehmen (auch wenn die KI ihn trotzdem einträgt).
+  if (kunde && staffSet.has(norm(kunde))) kunde = '';
+  if (kennz && staffSet.has(norm(kennz))) kennz = '';
   const customer = kunde && kennz ? kunde + ' (' + kennz + ')' : kunde || kennz || '';
 
   return {

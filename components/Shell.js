@@ -11,6 +11,8 @@ import Ausgaben from '@/components/Ausgaben';
 import Vertraege from '@/components/Vertraege';
 import Katalog from '@/components/Katalog';
 import Autohandel from '@/components/Autohandel';
+import Auftraege from '@/components/Auftraege';
+import Provisionen from '@/components/Provisionen';
 
 const isLeitung = (r) => ['manager', 'werkstattleitung', 'inhaber'].includes(r);
 const isWL = (r) => ['werkstattleitung', 'inhaber'].includes(r);
@@ -19,9 +21,11 @@ const isInhaber = (r) => r === 'inhaber';
 const NAV = [
   { v: 'terminal', t: 'Mein Terminal', ic: '🔧', grp: 'Arbeit', can: () => true },
   { v: 'uebersicht', t: 'Übersicht', ic: '📊', grp: 'Auswertung', can: isWL },
+  { v: 'auftraege', t: 'Aufträge', ic: '🧾', grp: 'Auswertung', can: isWL },
   { v: 'statistik', t: 'Statistik', ic: '📈', grp: 'Auswertung', can: isWL },
   { v: 'mitarbeiter', t: 'Mitarbeiter', ic: '👥', grp: 'Auswertung', can: isWL },
-  { v: 'ausgaben', t: 'Ausgaben', ic: '💸', grp: 'Auswertung', can: isWL },
+  { v: 'provisionen', t: 'Provisionen', ic: '💶', grp: 'Auswertung', can: isInhaber },
+  { v: 'ausgaben', t: 'Ausgaben', ic: '💸', grp: 'Auswertung', can: isInhaber },
   { v: 'vertraege', t: 'Verträge', ic: '📄', grp: 'Geschäft', can: isLeitung },
   { v: 'autohandel', t: 'Autohandel', ic: '🏎️', grp: 'Geschäft', can: isLeitung },
   { v: 'katalog', t: 'Preise & Katalog', ic: '🏷️', grp: 'Admin', can: isInhaber },
@@ -150,10 +154,12 @@ export default function Shell({ profile, services }) {
         <main className="content">
           {view === 'terminal' && <Terminal services={services} mechanicName={profile.name} userId={profile.id} />}
           {view === 'uebersicht' && <Uebersicht />}
+          {view === 'auftraege' && <Auftraege role={role} />}
           {view === 'statistik' && <Statistik />}
-          {view === 'mitarbeiter' && <Mitarbeiter role={role} />}
-          {view === 'ausgaben' && <Ausgaben />}
-          {view === 'vertraege' && <Vertraege />}
+          {view === 'mitarbeiter' && <Mitarbeiter role={role} myId={profile.id} />}
+          {view === 'provisionen' && <Provisionen />}
+          {view === 'ausgaben' && <Ausgaben role={role} />}
+          {view === 'vertraege' && <Vertraege role={role} />}
           {view === 'katalog' && <Katalog />}
           {view === 'autohandel' && <Autohandel role={role} userId={profile.id} myName={profile.name} />}
         </main>
