@@ -79,8 +79,10 @@ export async function setMechanicActive({ id, active }) {
   return { ok: true };
 }
 
-// "Löschen" = Platzhalter. Der Login wird dauerhaft gesperrt, der Datensatz
-// bleibt aber als Platzhalter erhalten, damit die Zahlen stehen bleiben.
+// "Löschen" = Platzhalter. Der Datensatz bleibt als Platzhalter erhalten
+// (damit die Zahlen stehen bleiben), der Login wird dauerhaft gesperrt UND
+// die E-Mail wird freigegeben (umgehängt), damit dieselbe Adresse später
+// wieder für einen neuen Account verwendet werden kann (z. B. Rückkehrer).
 export async function deleteMechanicPlaceholder({ id }) {
   const chk = await requireInhaber();
   if (chk.error) return { ok: false, error: chk.error };
@@ -95,10 +97,20 @@ export async function deleteMechanicPlaceholder({ id }) {
   const { error } = await admin.from('profiles').update({ active: false, archived: true }).eq('id', id);
   if (error) return { ok: false, error: error.message };
 
+  // E-Mail des Logins auf eine geparkte, eindeutige Adresse umhängen (gibt die
+  // Original-Adresse frei) und dauerhaft sperren.
+  let emailFreed = false;
   try {
-    await admin.auth.admin.updateUserById(id, { ban_duration: BAN_FOREVER });
+    const parked = 'ehemalig-' + id + '@former.rideout-customs.app';
+    const { error: eErr } = await admin.auth.admin.updateUserById(id, {
+      email: parked,
+      email_confirm: true,
+      ban_duration: BAN_FOREVER,
+    });
+    if (!eErr) emailFreed = true;
+    else await admin.auth.admin.updateUserById(id, { ban_duration: BAN_FOREVER }); // wenigstens sperren
   } catch {}
-  return { ok: true };
+  return { ok: true, emailFreed };
 }
 
 // Provisionssatz (0..1) pro Mechaniker setzen.

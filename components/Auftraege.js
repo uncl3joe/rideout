@@ -27,7 +27,7 @@ export default function Auftraege({ role }) {
   async function load() {
     const sb = createClient();
     const [o, p, s] = await Promise.all([
-      sb.from('orders').select('id, mechanic_id, mechanic_name, customer, order_date, umsatz, provision, screenshot_sum').order('order_date', { ascending: false }).order('id', { ascending: false }),
+      sb.from('orders').select('id, mechanic_id, mechanic_name, customer, order_date, umsatz, reingewinn, provision, screenshot_sum').order('order_date', { ascending: false }).order('id', { ascending: false }),
       sb.from('profiles').select('id, name'),
       sb.from('services').select('name, vk').eq('active', true).order('vk', { ascending: false }),
     ]);
@@ -63,8 +63,10 @@ export default function Auftraege({ role }) {
 
   const sums = useMemo(() => {
     const um = rows.reduce((s, o) => s + (o.umsatz || 0), 0);
+    const re = rows.reduce((s, o) => s + (o.reingewinn || 0), 0);
     const pr = rows.reduce((s, o) => s + (o.provision || 0), 0);
-    return { um, pr, n: rows.length };
+    const np = re - pr;
+    return { um, re, pr, np, n: rows.length };
   }, [rows]);
 
   async function openEdit(o) {
@@ -157,7 +159,7 @@ export default function Auftraege({ role }) {
       <div className="card">
         <div className="hd">
           <h2>{sel?.label}</h2>
-          <span className="tag">{sums.n} Aufträge · {fmt(sums.um)} · Prov. {fmt(sums.pr)}</span>
+          <span className="tag">{sums.n} Aufträge · Umsatz {fmt(sums.um)}</span>
         </div>
         <div className="tw">
           <table className="tbl">
@@ -167,13 +169,15 @@ export default function Auftraege({ role }) {
                 <th className="l">Mechaniker</th>
                 <th className="l">Kunde</th>
                 <th>Umsatz</th>
+                <th>Reingewinn</th>
                 <th>Provision</th>
+                <th>Rein. n. Prov.</th>
                 {canEdit && <th></th>}
               </tr>
               {!orders ? (
-                <tr><td className="l" colSpan={canEdit ? 6 : 5} style={{ color: 'var(--faint)' }}>Lädt …</td></tr>
+                <tr><td className="l" colSpan={canEdit ? 8 : 7} style={{ color: 'var(--faint)' }}>Lädt …</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td className="l" colSpan={canEdit ? 6 : 5} style={{ color: 'var(--faint)' }}>Keine Aufträge in diesem Zeitraum.</td></tr>
+                <tr><td className="l" colSpan={canEdit ? 8 : 7} style={{ color: 'var(--faint)' }}>Keine Aufträge in diesem Zeitraum.</td></tr>
               ) : (
                 rows.map((o) => (
                   <tr key={o.id}>
@@ -181,7 +185,9 @@ export default function Auftraege({ role }) {
                     <td className="l"><div className="who2"><div className="ava">{initials(nameOf(o))}</div><div>{nameOf(o)}</div></div></td>
                     <td className="l">{o.customer || '—'}</td>
                     <td className="num umc">{fmt(o.umsatz)}</td>
+                    <td className="num">{fmt(o.reingewinn)}</td>
                     <td className="num pvc">{fmt(o.provision)}</td>
+                    <td className="num">{fmt((o.reingewinn || 0) - (o.provision || 0))}</td>
                     {canEdit && (
                       <td>
                         <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
@@ -192,6 +198,18 @@ export default function Auftraege({ role }) {
                     )}
                   </tr>
                 ))
+              )}
+              {rows.length > 0 && (
+                <tr>
+                  <td className="l"><b>Gesamt</b></td>
+                  <td></td>
+                  <td></td>
+                  <td className="num umc"><b>{fmt(sums.um)}</b></td>
+                  <td className="num"><b>{fmt(sums.re)}</b></td>
+                  <td className="num pvc"><b>{fmt(sums.pr)}</b></td>
+                  <td className="num"><b>{fmt(sums.np)}</b></td>
+                  {canEdit && <td></td>}
+                </tr>
               )}
             </tbody>
           </table>

@@ -99,10 +99,10 @@ export default function Mitarbeiter({ role, myId }) {
   }
 
   async function removePlaceholder(p) {
-    if (!confirm('„' + (p.name || 'Mitarbeiter') + '" endgültig löschen? Der Login wird entfernt, die Zahlen bleiben als Platzhalter erhalten.')) return;
+    if (!confirm('„' + (p.name || 'Mitarbeiter') + '" endgültig löschen? Der Login wird gesperrt und die E-Mail wieder freigegeben, die Zahlen bleiben als Platzhalter erhalten.')) return;
     const res = await deleteMechanicPlaceholder({ id: p.id });
     if (!res.ok) return flash('Fehler: ' + res.error);
-    flash('Mitarbeiter gelöscht (Platzhalter bleibt)');
+    flash(res.emailFreed ? 'Gelöscht ✓ E-Mail ist wieder frei' : 'Gelöscht (E-Mail konnte nicht freigegeben werden)');
     load();
   }
 
@@ -227,16 +227,16 @@ export default function Mitarbeiter({ role, myId }) {
                           <td>
                             {self ? (
                               <span style={{ fontSize: 11.5, color: 'var(--faint)' }}>du</span>
+                            ) : p.archived ? (
+                              <span style={{ fontSize: 11.5, color: 'var(--faint)' }}>gelöscht</span>
                             ) : (
                               <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                                 {inactive ? (
                                   <button className="btn" style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => toggleActive(p)}>Aktivieren</button>
                                 ) : (
-                                  <>
-                                    <button className="btn" style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => toggleActive(p)}>Deaktivieren</button>
-                                    <button className="xdel" title="Löschen (Platzhalter)" onClick={() => removePlaceholder(p)}>✕</button>
-                                  </>
+                                  <button className="btn" style={{ padding: '6px 10px', fontSize: 12 }} onClick={() => toggleActive(p)}>Deaktivieren</button>
                                 )}
+                                <button className="xdel" title="Löschen (Platzhalter, E-Mail wird frei)" onClick={() => removePlaceholder(p)}>✕</button>
                               </div>
                             )}
                           </td>

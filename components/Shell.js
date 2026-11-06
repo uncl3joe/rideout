@@ -13,6 +13,7 @@ import Katalog from '@/components/Katalog';
 import Autohandel from '@/components/Autohandel';
 import Auftraege from '@/components/Auftraege';
 import Provisionen from '@/components/Provisionen';
+import Kasse from '@/components/Kasse';
 
 const isLeitung = (r) => ['manager', 'werkstattleitung', 'inhaber'].includes(r);
 const isWL = (r) => ['werkstattleitung', 'inhaber'].includes(r);
@@ -25,6 +26,7 @@ const NAV = [
   { v: 'statistik', t: 'Statistik', ic: '📈', grp: 'Auswertung', can: isWL },
   { v: 'mitarbeiter', t: 'Mitarbeiter', ic: '👥', grp: 'Auswertung', can: isWL },
   { v: 'provisionen', t: 'Provisionen', ic: '💶', grp: 'Auswertung', can: isInhaber },
+  { v: 'kasse', t: 'Kassenstand', ic: '🏦', grp: 'Auswertung', can: isInhaber },
   { v: 'ausgaben', t: 'Ausgaben', ic: '💸', grp: 'Auswertung', can: isInhaber },
   { v: 'vertraege', t: 'Verträge', ic: '📄', grp: 'Geschäft', can: isLeitung },
   { v: 'autohandel', t: 'Autohandel', ic: '🏎️', grp: 'Geschäft', can: isLeitung },
@@ -158,6 +160,7 @@ export default function Shell({ profile, services }) {
           {view === 'statistik' && <Statistik />}
           {view === 'mitarbeiter' && <Mitarbeiter role={role} myId={profile.id} />}
           {view === 'provisionen' && <Provisionen />}
+          {view === 'kasse' && <Kasse />}
           {view === 'ausgaben' && <Ausgaben role={role} />}
           {view === 'vertraege' && <Vertraege role={role} />}
           {view === 'katalog' && <Katalog />}
