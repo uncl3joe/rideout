@@ -1,1 +1,38 @@
+name: Changelog nach Discord
 
+# Postet den neuesten Changelog-Eintrag automatisch in einen Discord-Channel,
+# sobald die CHANGELOG.md geaendert und hochgeladen wurde.
+on: { push: { branches: [ main ], paths: [ 'CHANGELOG.md' ] }, workflow_dispatch: {} }
+
+jobs:
+  post:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code holen
+        uses: actions/checkout@v4
+      - name: Neuesten Eintrag posten
+        env:
+          HOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
+        run: |
+          node <<'SCRIPT'
+          const fs = require('fs');
+          const hook = process.env.HOOK;
+          if (!hook) { console.log('Kein DISCORD_CHANGELOG_WEBHOOK gesetzt.'); process.exit(0); }
+          let md = '';
+          try { md = fs.readFileSync('CHANGELOG.md', 'utf8'); } catch (e) { console.log('Keine CHANGELOG.md.'); process.exit(0); }
+          const lines = md.split('\n');
+          let start = -1;
+          for (let i = 0; i < lines.length; i++) { if (/^##\s+v/i.test(lines[i])) { start = i; break; } }
+          if (start < 0) { console.log('Kein Versionsblock.'); process.exit(0); }
+          let end = lines.length;
+          for (let i = start + 1; i < lines.length; i++) { if (/^##\s+/.test(lines[i])) { end = i; break; } }
+          const header = lines[start].replace(/^##\s+/, '').trim();
+          let body = lines.slice(start + 1, end).join('\n').trim();
+          if (body.length > 3900) body = body.slice(0, 3900) + '\n…';
+          const embed = { title: '📋 Update ' + header, description: body || '(keine Details)', color: 0xff7a1a, footer: { text: 'Ride Out Customs' }, timestamp: new Date().toISOString() };
+          (async () => {
+          const r = await fetch(hook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ embeds: [embed] }) });
+          if (!r.ok) { console.error('Discord-Fehler', r.status, await r.text().catch(() => '')); process.exit(1); }
+          console.log('Gepostet:', header);
+          })();
+          SCRIPT
