@@ -6,8 +6,20 @@ import { fmt, numf, buildPeriods, initials } from '@/lib/format';
 import { editOrder, deleteOrder } from '@/app/manage-actions';
 import Seg from '@/components/Seg';
 
+const timeOf = (ts) => {
+  if (!ts) return '';
+  try {
+    const d = new Date(ts);
+    return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0');
+  } catch {
+    return '';
+  }
+};
+
 export default function Auftraege({ role }) {
   const canEdit = role === 'inhaber';
+  // Gewinn-/Provisionsspalten nur für die Leitungsebene; Mechaniker sieht sie nicht.
+  const canMoney = ['manager', 'werkstattleitung', 'inhaber'].includes(role);
   const [orders, setOrders] = useState(null);
   const [profiles, setProfiles] = useState([]);
   const [services, setServices] = useState([]);
@@ -28,7 +40,7 @@ export default function Auftraege({ role }) {
   async function load() {
     const sb = createClient();
     const [o, p, s] = await Promise.all([
-      sb.from('orders').select('id, mechanic_id, mechanic_name, customer, order_date, umsatz, reingewinn, provision, screenshot_sum').order('order_date', { ascending: false }).order('id', { ascending: false }),
+      sb.from('orders').select('id, mechanic_id, mechanic_name, customer, order_date, umsatz, reingewinn, provision, screenshot_sum, created_at').order('created_at', { ascending: false }),
       sb.from('profiles').select('id, name'),
       sb.from('services').select('name, vk').eq('active', true).order('vk', { ascending: false }),
     ]);
@@ -175,25 +187,28 @@ export default function Auftraege({ role }) {
                 <th className="l">Mechaniker</th>
                 <th className="l">Kunde</th>
                 <th>Umsatz</th>
-                <th>Reingewinn</th>
-                <th>Provision</th>
-                <th>Rein. n. Prov.</th>
+                {canMoney && <th>Reingewinn</th>}
+                {canMoney && <th>Provision</th>}
+                {canMoney && <th>Rein. n. Prov.</th>}
                 {canEdit && <th></th>}
               </tr>
               {!orders ? (
-                <tr><td className="l" colSpan={canEdit ? 8 : 7} style={{ color: 'var(--faint)' }}>Lädt …</td></tr>
+                <tr><td className="l" colSpan={4 + (canMoney ? 3 : 0) + (canEdit ? 1 : 0)} style={{ color: 'var(--faint)' }}>Lädt …</td></tr>
               ) : rows.length === 0 ? (
-                <tr><td className="l" colSpan={canEdit ? 8 : 7} style={{ color: 'var(--faint)' }}>Keine Aufträge in diesem Zeitraum.</td></tr>
+                <tr><td className="l" colSpan={4 + (canMoney ? 3 : 0) + (canEdit ? 1 : 0)} style={{ color: 'var(--faint)' }}>Keine Aufträge in diesem Zeitraum.</td></tr>
               ) : (
                 rows.map((o) => (
                   <tr key={o.id}>
-                    <td className="l num">{o.order_date}</td>
+                    <td className="l num">
+                      {o.order_date}
+                      {o.created_at && <small style={{ display: 'block', color: 'var(--faint)', fontWeight: 400 }}>{timeOf(o.created_at)}</small>}
+                    </td>
                     <td className="l"><div className="who2"><div className="ava">{initials(nameOf(o))}</div><div>{nameOf(o)}</div></div></td>
                     <td className="l">{o.customer || '—'}</td>
                     <td className="num umc">{fmt(o.umsatz)}</td>
-                    <td className="num">{fmt(o.reingewinn)}</td>
-                    <td className="num pvc">{fmt(o.provision)}</td>
-                    <td className="num">{fmt((o.reingewinn || 0) - (o.provision || 0))}</td>
+                    {canMoney && <td className="num">{fmt(o.reingewinn)}</td>}
+                    {canMoney && <td className="num pvc">{fmt(o.provision)}</td>}
+                    {canMoney && <td className="num">{fmt((o.reingewinn || 0) - (o.provision || 0))}</td>}
                     {canEdit && (
                       <td>
                         <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
@@ -211,9 +226,9 @@ export default function Auftraege({ role }) {
                   <td></td>
                   <td></td>
                   <td className="num umc"><b>{fmt(sums.um)}</b></td>
-                  <td className="num"><b>{fmt(sums.re)}</b></td>
-                  <td className="num pvc"><b>{fmt(sums.pr)}</b></td>
-                  <td className="num"><b>{fmt(sums.np)}</b></td>
+                  {canMoney && <td className="num"><b>{fmt(sums.re)}</b></td>}
+                  {canMoney && <td className="num pvc"><b>{fmt(sums.pr)}</b></td>}
+                  {canMoney && <td className="num"><b>{fmt(sums.np)}</b></td>}
                   {canEdit && <td></td>}
                 </tr>
               )}

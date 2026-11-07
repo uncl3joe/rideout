@@ -82,4 +82,6 @@ Live und an die echte Datenbank angebunden: Mein Terminal mit KI-Auslesung,
 Übersicht (Zeitraum-Umschalter), Statistik, Mitarbeiter (anlegen, Name/Rang
 bearbeiten, löschen), Ausgaben, Verträge, Preise & Katalog.
 
-Kommt noch: Phase 3 – öffentliche Homepage mit Fahrzeughandel.
+Ebenfalls live: öffentliche Homepage mit Fahrzeughandel (/shop), Aufträge-Tab
+mit Bearbeiten/Löschen, Provisions-Abrechnung, Kassenstand, rollenbasierte
+Leserechte (Mechaniker/Manager/WL/Inhaber).

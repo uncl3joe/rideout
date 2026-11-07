@@ -107,14 +107,16 @@ export default function Mitarbeiter({ role, myId }) {
   }
 
   const rights = [
-    ['Eigenes Terminal', 'alle Ränge'],
-    ['Aufträge ansehen', 'Werkstattleitung, Inhaber'],
-    ['Verträge ansehen', 'Manager, Werkstattleitung, Inhaber'],
-    ['Autohandel', 'Manager, Werkstattleitung, Inhaber'],
-    ['Übersicht + Statistik', 'Werkstattleitung, Inhaber'],
+    ['Eigenes Terminal', 'alle Ränge (inkl. Praktikant)'],
+    ['Übersicht, Aufträge, Statistik ansehen', 'Mechaniker, Manager, Werkstattleitung, Inhaber'],
+    ['Ausgaben / Reingewinn / Netto in der Übersicht', 'Manager, Werkstattleitung, Inhaber'],
+    ['Provisionen ansehen', 'Mechaniker (nur eigene), Manager, Werkstattleitung, Inhaber'],
+    ['Verträge & Autohandel ansehen', 'Manager, Werkstattleitung, Inhaber'],
     ['Aufträge / Ausgaben / Verträge bearbeiten', 'nur Inhaber'],
-    ['Ausgaben + Provisionen', 'nur Inhaber'],
-    ['Mitarbeiter verwalten + Katalog', 'nur Inhaber'],
+    ['Provisionen abrechnen (Bonus, ausbezahlt)', 'nur Inhaber'],
+    ['Ausgaben & Kassenstand', 'nur Inhaber'],
+    ['Mitarbeiter verwalten & Katalog', 'nur Inhaber'],
+    ['Praktikant', 'nur das eigene Terminal'],
   ];
 
   const pct = (r) => (r === '' || r == null ? '' : Math.round(Number(r) * 100));

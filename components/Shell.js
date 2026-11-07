@@ -15,17 +15,18 @@ import Auftraege from '@/components/Auftraege';
 import Provisionen from '@/components/Provisionen';
 import Kasse from '@/components/Kasse';
 
+const isTeam = (r) => ['mechaniker', 'manager', 'werkstattleitung', 'inhaber'].includes(r);
 const isLeitung = (r) => ['manager', 'werkstattleitung', 'inhaber'].includes(r);
 const isWL = (r) => ['werkstattleitung', 'inhaber'].includes(r);
 const isInhaber = (r) => r === 'inhaber';
 
 const NAV = [
   { v: 'terminal', t: 'Mein Terminal', ic: '🔧', grp: 'Arbeit', can: () => true },
-  { v: 'uebersicht', t: 'Übersicht', ic: '📊', grp: 'Auswertung', can: isWL },
-  { v: 'auftraege', t: 'Aufträge', ic: '🧾', grp: 'Auswertung', can: isWL },
-  { v: 'statistik', t: 'Statistik', ic: '📈', grp: 'Auswertung', can: isWL },
+  { v: 'uebersicht', t: 'Übersicht', ic: '📊', grp: 'Auswertung', can: isTeam },
+  { v: 'auftraege', t: 'Aufträge', ic: '🧾', grp: 'Auswertung', can: isTeam },
+  { v: 'statistik', t: 'Statistik', ic: '📈', grp: 'Auswertung', can: isTeam },
   { v: 'mitarbeiter', t: 'Mitarbeiter', ic: '👥', grp: 'Auswertung', can: isWL },
-  { v: 'provisionen', t: 'Provisionen', ic: '💶', grp: 'Auswertung', can: isInhaber },
+  { v: 'provisionen', t: 'Provisionen', ic: '💶', grp: 'Auswertung', can: isTeam },
   { v: 'kasse', t: 'Kassenstand', ic: '🏦', grp: 'Auswertung', can: isInhaber },
   { v: 'ausgaben', t: 'Ausgaben', ic: '💸', grp: 'Auswertung', can: isInhaber },
   { v: 'vertraege', t: 'Verträge', ic: '📄', grp: 'Geschäft', can: isLeitung },
@@ -155,11 +156,11 @@ export default function Shell({ profile, services }) {
 
         <main className="content">
           {view === 'terminal' && <Terminal services={services} mechanicName={profile.name} userId={profile.id} />}
-          {view === 'uebersicht' && <Uebersicht />}
+          {view === 'uebersicht' && <Uebersicht role={role} />}
           {view === 'auftraege' && <Auftraege role={role} />}
           {view === 'statistik' && <Statistik />}
           {view === 'mitarbeiter' && <Mitarbeiter role={role} myId={profile.id} />}
-          {view === 'provisionen' && <Provisionen />}
+          {view === 'provisionen' && <Provisionen role={role} myId={profile.id} />}
           {view === 'kasse' && <Kasse />}
           {view === 'ausgaben' && <Ausgaben role={role} />}
           {view === 'vertraege' && <Vertraege role={role} />}

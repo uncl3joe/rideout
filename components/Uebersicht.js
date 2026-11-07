@@ -7,7 +7,9 @@ import Seg from '@/components/Seg';
 
 const TAX = 0.05;
 
-export default function Uebersicht() {
+export default function Uebersicht({ role }) {
+  // Kassen-Zahlen (Ausgaben/Reingewinn/Netto) und fremde Provisionen nur für die Leitungsebene.
+  const canMoney = ['manager', 'werkstattleitung', 'inhaber'].includes(role);
   const [orders, setOrders] = useState(null);
   const [expenses, setExpenses] = useState([]);
   const [profiles, setProfiles] = useState([]);
@@ -80,12 +82,12 @@ export default function Uebersicht() {
         <div className="soon"><p>Lädt …</p></div>
       ) : (
         <>
-          <div className="kpis five">
+          <div className={'kpis ' + (canMoney ? 'five' : '')} style={canMoney ? undefined : { gridTemplateColumns: '1fr', maxWidth: 260 }}>
             <div className="kpi rev"><div className="k">Umsatz</div><div className="v num">{fmt(data.umsatz)}</div></div>
-            <div className="kpi"><div className="k">Ausgaben</div><div className="v num">{fmt(data.ausg)}</div></div>
-            <div className="kpi"><div className="k">Reingewinn</div><div className="v num">{fmt(data.rein)}</div></div>
-            <div className="kpi pro"><div className="k">Provisionen</div><div className="v num">{fmt(data.prov)}</div></div>
-            <div className="kpi"><div className="k">Netto (n. Steuer)</div><div className="v num">{fmt(data.netto)}</div></div>
+            {canMoney && <div className="kpi"><div className="k">Ausgaben</div><div className="v num">{fmt(data.ausg)}</div></div>}
+            {canMoney && <div className="kpi"><div className="k">Reingewinn</div><div className="v num">{fmt(data.rein)}</div></div>}
+            {canMoney && <div className="kpi pro"><div className="k">Provisionen</div><div className="v num">{fmt(data.prov)}</div></div>}
+            {canMoney && <div className="kpi"><div className="k">Netto (n. Steuer)</div><div className="v num">{fmt(data.netto)}</div></div>}
           </div>
 
           <div className="card" style={{ marginTop: 18 }}>
@@ -101,10 +103,10 @@ export default function Uebersicht() {
                     <th className="l">Rang</th>
                     <th>Aufträge</th>
                     <th>Umsatz</th>
-                    <th>Provision</th>
+                    {canMoney && <th>Provision</th>}
                   </tr>
                   {data.rows.length === 0 ? (
-                    <tr><td className="l" colSpan={5} style={{ color: 'var(--faint)' }}>Keine Aufträge in diesem Zeitraum.</td></tr>
+                    <tr><td className="l" colSpan={canMoney ? 5 : 4} style={{ color: 'var(--faint)' }}>Keine Aufträge in diesem Zeitraum.</td></tr>
                   ) : (
                     data.rows.map((m) => (
                       <tr key={m.id}>
@@ -112,7 +114,7 @@ export default function Uebersicht() {
                         <td className="l"><span className={'badge ' + roleBadgeClass(m.role)}>{ROLE_LABEL[m.role] || m.role}</span></td>
                         <td className="num">{m.auf}</td>
                         <td className="num umc">{fmt(m.um)}</td>
-                        <td className="num pvc">{fmt(m.prov)}</td>
+                        {canMoney && <td className="num pvc">{fmt(m.prov)}</td>}
                       </tr>
                     ))
                   )}

@@ -5,7 +5,9 @@ import { createClient } from '@/lib/supabase/client';
 import { fmt, numf, buildPeriods, initials } from '@/lib/format';
 import { savePayout } from '@/app/manage-actions';
 
-export default function Provisionen() {
+export default function Provisionen({ role, myId }) {
+  const canEdit = role === 'inhaber';
+  const seeAll = ['manager', 'werkstattleitung', 'inhaber'].includes(role);
   const weeks = useMemo(() => buildPeriods('woche'), []);
   const [periodKey, setPeriodKey] = useState(() => weeks[0].key);
   const [orders, setOrders] = useState(null);
@@ -65,14 +67,16 @@ export default function Provisionen() {
     Object.keys(pay).forEach((id) => {
       if ((pay[id].bonus || 0) !== 0 || pay[id].paid) ids.add(id);
     });
-    return [...ids]
+    // Mechaniker sieht nur die eigene Zeile.
+    const idList = seeAll ? [...ids] : [...ids].filter((id) => id === myId);
+    return idList
       .map((id) => {
         const bonus = Number(pay[id]?.bonus || 0);
         const prov = base[id]?.prov || 0;
         return { id, name: nameOf(id), auf: base[id]?.auf || 0, prov, bonus, gesamt: prov + bonus, paid: !!pay[id]?.paid };
       })
       .sort((a, b) => b.gesamt - a.gesamt);
-  }, [orders, sel, pay, profiles]);
+  }, [orders, sel, pay, profiles, seeAll, myId]);
 
   const totals = useMemo(() => ({
     prov: rows.reduce((s, r) => s + r.prov, 0),
@@ -123,7 +127,7 @@ export default function Provisionen() {
     <>
       <div className="vhead">
         <h2>Provisionen</h2>
-        <span className="vs">Wöchentliche Abrechnung</span>
+        <span className="vs">{canEdit ? 'Wöchentliche Abrechnung' : seeAll ? 'Wöchentliche Abrechnung (nur Ansicht)' : 'Deine wöchentliche Provision'}</span>
         <select className="psel" value={periodKey} onChange={(e) => setPeriodKey(e.target.value)} aria-label="Woche wählen">
           {weeks.map((w) => <option key={w.key} value={w.key}>{w.label}</option>)}
         </select>
@@ -160,16 +164,24 @@ export default function Provisionen() {
                     <td className="num">{r.auf}</td>
                     <td className="num pvc">{fmt(r.prov)}</td>
                     <td>
-                      <input className="vkin" type="number" value={pay[r.id]?.bonus ?? 0}
-                        onChange={(e) => setBonus(r.id, e.target.value)}
-                        onBlur={() => commitBonus(r.id)} />
+                      {canEdit ? (
+                        <input className="vkin" type="number" value={pay[r.id]?.bonus ?? 0}
+                          onChange={(e) => setBonus(r.id, e.target.value)}
+                          onBlur={() => commitBonus(r.id)} />
+                      ) : (
+                        <span className="num">{fmt(r.bonus)}</span>
+                      )}
                     </td>
                     <td className="num umc">{fmt(r.gesamt)}</td>
                     <td>
-                      <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', cursor: 'pointer', justifyContent: 'center', width: '100%' }}>
-                        <input type="checkbox" checked={r.paid} onChange={() => togglePaid(r.id)} />
+                      {canEdit ? (
+                        <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', cursor: 'pointer', justifyContent: 'center', width: '100%' }}>
+                          <input type="checkbox" checked={r.paid} onChange={() => togglePaid(r.id)} />
+                          <span style={{ fontSize: 12 }}>{r.paid ? 'ja' : 'offen'}</span>
+                        </label>
+                      ) : (
                         <span style={{ fontSize: 12 }}>{r.paid ? 'ja' : 'offen'}</span>
-                      </label>
+                      )}
                     </td>
                   </tr>
                 ))
