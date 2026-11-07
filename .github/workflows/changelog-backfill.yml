@@ -1,0 +1,48 @@
+name: Changelog Backfill
+
+# Einmalig von Hand starten (Actions -> diese Aufgabe -> Run workflow).
+# Postet ALLE Eintraege aus CHANGELOG.md der Reihe nach (aeltester zuerst)
+# in den Discord-Channel. Laeuft nie von selbst.
+on: { workflow_dispatch: {} }
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Code holen
+        uses: actions/checkout@v4
+      - name: Alle Eintraege posten
+        env:
+          HOOK: ${{ secrets.DISCORD_CHANGELOG_WEBHOOK }}
+        run: |
+          node <<'SCRIPT'
+          const fs = require('fs');
+          const hook = process.env.HOOK;
+          if (!hook) { console.log('Kein DISCORD_CHANGELOG_WEBHOOK gesetzt.'); process.exit(0); }
+          const md = fs.readFileSync('CHANGELOG.md', 'utf8').split('\n');
+          const idx = [];
+          for (let i = 0; i < md.length; i++) { if (/^##\s+/.test(md[i])) idx.push(i); }
+          const blocks = [];
+          for (let k = 0; k < idx.length; k++) {
+          const s = idx[k], e = (k + 1 < idx.length) ? idx[k + 1] : md.length;
+          const header = md[s].replace(/^##\s+/, '').trim();
+          let body = md.slice(s + 1, e).join('\n').trim();
+          if (body.length > 3900) body = body.slice(0, 3900) + '\n…';
+          blocks.push({ header, body });
+          }
+          blocks.reverse();
+          const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+          async function postOne(b) {
+          const embed = { title: '📋 Update ' + b.header, description: b.body || '(keine Details)', color: 0xff7a1a, footer: { text: 'Ride Out Customs' } };
+          for (;;) {
+          const r = await fetch(hook, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ embeds: [embed] }) });
+          if (r.status === 429) { const j = await r.json().catch(() => ({ retry_after: 2 })); const w = (j.retry_after || 2) * 1000 + 300; console.log('Rate limit, warte', w, 'ms'); await sleep(w); continue; }
+          if (!r.ok) { console.error('Discord-Fehler', r.status, await r.text().catch(() => '')); process.exit(1); }
+          return;
+          }
+          }
+          (async () => {
+          for (const b of blocks) { await postOne(b); console.log('gepostet:', b.header); await sleep(1200); }
+          console.log('Backfill fertig:', blocks.length, 'Eintraege');
+          })();
+          SCRIPT
