@@ -15,7 +15,7 @@ export default function Autohandel({ role, userId, myName }) {
   const [vehicles, setVehicles] = useState(null);
   const [reservations, setReservations] = useState([]);
   const [team, setTeam] = useState([]);
-  const [nf, setNf] = useState({ model: '', price: '', seller_id: userId || '' });
+  const [nf, setNf] = useState({ model: '', price: '', seller_id: userId || '', reserve_24h: false });
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
@@ -28,7 +28,7 @@ export default function Autohandel({ role, userId, myName }) {
   async function loadAll() {
     const sb = createClient();
     const [v, r, t] = await Promise.all([
-      sb.from('vehicles').select('id, model, price, seller_id, seller_name, status, image_url').order('created_at', { ascending: false }),
+      sb.from('vehicles').select('id, model, price, seller_id, seller_name, status, image_url, reserve_24h').order('created_at', { ascending: false }),
       sb.from('reservations').select('id, customer_name, customer_contact, handled, created_at, vehicles(model)').order('created_at', { ascending: false }),
       sb.from('profiles').select('id, name').order('name'),
     ]);
@@ -64,9 +64,10 @@ export default function Autohandel({ role, userId, myName }) {
         seller_name: seller ? seller.name : myName,
         status: 'verfuegbar',
         image_url,
+        reserve_24h: !!nf.reserve_24h,
       });
       if (error) throw error;
-      setNf({ model: '', price: '', seller_id: userId || '' });
+      setNf({ model: '', price: '', seller_id: userId || '', reserve_24h: false });
       setFile(null);
       flash('Fahrzeug angelegt ✓');
       loadAll();
@@ -131,7 +132,7 @@ export default function Autohandel({ role, userId, myName }) {
       <div className="card" style={{ marginBottom: 18 }}>
         <div className="hd"><h2>Fahrzeug anlegen</h2></div>
         <div className="bd">
-          <div className="fields" style={{ gridTemplateColumns: '1.4fr .8fr 1fr auto auto', marginTop: 0, alignItems: 'end' }}>
+          <div className="fields" style={{ gridTemplateColumns: '1.4fr .8fr 1fr auto auto auto', marginTop: 0, alignItems: 'end' }}>
             <div className="field"><label>Modell</label><input value={nf.model} onChange={(e) => setNf({ ...nf, model: e.target.value })} placeholder="z. B. Pfister Comet" /></div>
             <div className="field"><label>Preis</label><input className="num" type="number" min="0" value={nf.price} onChange={(e) => setNf({ ...nf, price: e.target.value })} placeholder="0" /></div>
             <div className="field"><label>Verkäufer</label>
@@ -141,6 +142,13 @@ export default function Autohandel({ role, userId, myName }) {
               </select>
             </div>
             <div className="field"><label>Foto</label><input type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0] || null)} /></div>
+            <div className="field" style={{ minWidth: 150 }}>
+              <label>Reservierung 24 h</label>
+              <label style={{ display: 'inline-flex', gap: 6, alignItems: 'center', height: 38, fontSize: 12.5, color: 'var(--mut)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={nf.reserve_24h} onChange={(e) => setNf({ ...nf, reserve_24h: e.target.checked })} />
+                läuft nach 24 h ab
+              </label>
+            </div>
             <button className="save" style={{ marginTop: 0, width: 'auto', padding: '10px 16px', fontSize: 13 }} onClick={addVehicle} disabled={busy}>
               {busy ? '…' : 'Anlegen'}
             </button>
@@ -187,10 +195,11 @@ export default function Autohandel({ role, userId, myName }) {
                   <th>Preis</th>
                   <th className="l">Verkäufer</th>
                   <th className="l">Status</th>
+                  <th>24 h</th>
                   <th></th>
                 </tr>
                 {vehicles.length === 0 ? (
-                  <tr><td className="l" colSpan={6} style={{ color: 'var(--faint)' }}>Noch keine Fahrzeuge.</td></tr>
+                  <tr><td className="l" colSpan={7} style={{ color: 'var(--faint)' }}>Noch keine Fahrzeuge.</td></tr>
                 ) : (
                   vehicles.map((v) => (
                     <tr key={v.id}>
@@ -219,6 +228,10 @@ export default function Autohandel({ role, userId, myName }) {
                           onChange={(e) => { setLocal(v.id, 'status', e.target.value); commit(v.id, 'status', e.target.value); }}>
                           {STATUS.map(([val, lbl]) => <option key={val} value={val}>{lbl}</option>)}
                         </select>
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <input type="checkbox" checked={!!v.reserve_24h} title="Reservierung läuft nach 24 h ab"
+                          onChange={(e) => { setLocal(v.id, 'reserve_24h', e.target.checked); commit(v.id, 'reserve_24h', e.target.checked); }} />
                       </td>
                       <td><button className="xdel" title="Löschen" onClick={() => delVehicle(v.id, v.model)}>✕</button></td>
                     </tr>

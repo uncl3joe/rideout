@@ -14,6 +14,7 @@ import Autohandel from '@/components/Autohandel';
 import Auftraege from '@/components/Auftraege';
 import Provisionen from '@/components/Provisionen';
 import Kasse from '@/components/Kasse';
+import Auktion from '@/components/Auktion';
 
 const isTeam = (r) => ['mechaniker', 'manager', 'werkstattleitung', 'inhaber'].includes(r);
 const isLeitung = (r) => ['manager', 'werkstattleitung', 'inhaber'].includes(r);
@@ -31,6 +32,7 @@ const NAV = [
   { v: 'ausgaben', t: 'Ausgaben', ic: '💸', grp: 'Auswertung', can: isInhaber },
   { v: 'vertraege', t: 'Verträge', ic: '📄', grp: 'Geschäft', can: isLeitung },
   { v: 'autohandel', t: 'Autohandel', ic: '🏎️', grp: 'Geschäft', can: isLeitung },
+  { v: 'auktion', t: 'Auktion', ic: '🔨', grp: 'Geschäft', can: isLeitung },
   { v: 'katalog', t: 'Preise & Katalog', ic: '🏷️', grp: 'Admin', can: isInhaber },
 ];
 
@@ -166,6 +168,7 @@ export default function Shell({ profile, services }) {
           {view === 'vertraege' && <Vertraege role={role} />}
           {view === 'katalog' && <Katalog />}
           {view === 'autohandel' && <Autohandel role={role} userId={profile.id} myName={profile.name} />}
+          {view === 'auktion' && <Auktion />}
         </main>
       </div>
 

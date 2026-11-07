@@ -34,7 +34,13 @@ export async function middleware(request) {
   const path = request.nextUrl.pathname;
   const isAuthRoute = path === '/login';
   // Öffentlich erreichbar (ohne Login): die Kunden-Fahrzeugseite.
-  const isPublic = isAuthRoute || path === '/shop' || path.startsWith('/shop/');
+  const isPublic =
+    isAuthRoute ||
+    path === '/shop' ||
+    path.startsWith('/shop/') ||
+    path === '/auktion' ||
+    path.startsWith('/auktion/') ||
+    path.startsWith('/api/cron');
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
