@@ -1,9 +1,9 @@
 name: ROC Aufraeum-Job
 
+# Stoesst alle 15 Minuten den Aufraeum-Job an: abgelaufene 24h-Reservierungen
+# freigeben und faellige Auktionen beenden. Laeuft auf GitHub, unabhaengig vom
+# Vercel-Plan.
 on: { schedule: [ { cron: '*/15 * * * *' } ], workflow_dispatch: {} }
-  schedule:
-    - cron: '*/15 * * * *'
-  workflow_dispatch: {}
 
 jobs:
   cleanup:
