@@ -1,0 +1,15 @@
+name: ROC Aufraeum-Job
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'
+  workflow_dispatch: {}
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Cron-Route anstossen
+        run: |
+          curl -fsS --max-time 30 -X POST \
+            "https://rideout-kappa.vercel.app/api/cron?key=${{ secrets.CRON_SECRET }}"
