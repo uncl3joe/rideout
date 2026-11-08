@@ -3,21 +3,9 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireLeitung } from '@/lib/guards';
 import { effectiveEndMs } from '@/lib/cleanup';
+import { buildAuctionEmbed, postAuctionMessage, refreshAuctionMessage, finalizeAuctionMessages } from '@/lib/auction-discord';
 
-async function postDiscord(embed) {
-  const hook = process.env.DISCORD_WEBHOOK_URL;
-  if (!hook) return;
-  try {
-    await fetch(hook, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ embeds: [embed] }),
-    });
-  } catch {
-    /* optional */
-  }
-}
-
+const MIN_INCREMENT = 50000;
 const dollars = (n) => Number(n || 0).toLocaleString('de-DE') + ' $';
 
 // ---------------- Öffentlich: Gebot abgeben ----------------
@@ -49,6 +37,8 @@ export async function placeBid({ auctionId, icName, discordName, amount }) {
   await admin.from('bid_contacts').insert({ bid_id: bid.id, auction_id: auctionId, discord_name: discordName });
   await admin.from('auctions').update({ current_bid: amount, current_bid_ic: icName, last_bid_at: nowIso }).eq('id', auctionId);
 
+  await refreshAuctionMessage(admin, auctionId); // Live-Nachricht in Discord aktualisieren
+
   return { ok: true, amount };
 }
 
@@ -73,27 +63,19 @@ export async function createAuction({ model, imageUrl, startPrice, minIncrement,
       model,
       image_url: imageUrl || null,
       start_price: Math.max(0, Math.round(Number(startPrice) || 0)),
-      min_increment: Math.max(1, Math.round(Number(minIncrement) || 1000)),
+      min_increment: Math.max(MIN_INCREMENT, Math.round(Number(minIncrement) || MIN_INCREMENT)),
       ends_at: ends.toISOString(),
       status: 'live',
       seller_id: chk.user.id,
       seller_name: prof?.name || '',
     })
-    .select('id, model, start_price, ends_at')
+    .select('id, model, image_url, start_price, min_increment, current_bid, current_bid_ic, last_bid_at, ends_at, status')
     .single();
   if (error) return { ok: false, error: error.message };
 
-  await postDiscord({
-    title: '🔨 Neue Auktion gestartet',
-    color: 0xff7a1a,
-    fields: [
-      { name: 'Fahrzeug', value: String(a.model), inline: true },
-      { name: 'Startpreis', value: dollars(a.start_price), inline: true },
-      { name: 'Ende', value: new Date(a.ends_at).toLocaleString('de-DE'), inline: true },
-    ],
-    footer: { text: 'Ride Out Customs · Auktion' },
-    timestamp: new Date().toISOString(),
-  });
+  // Öffentliche Live-Nachricht in Discord posten und die Nachrichten-ID merken.
+  const mid = await postAuctionMessage(buildAuctionEmbed(a, [], false));
+  if (mid) await admin.from('auctions').update({ discord_message_id: mid }).eq('id', a.id);
 
   return { ok: true, id: a.id };
 }
@@ -116,17 +98,7 @@ export async function endAuction({ auctionId }) {
     .eq('status', 'live')
     .select('id');
   if (upd && upd.length) {
-    await postDiscord({
-      title: '🏁 Auktion beendet',
-      color: 0x37a6ea,
-      fields: [
-        { name: 'Fahrzeug', value: String(a.model || '—'), inline: true },
-        { name: 'Gewinner', value: a.current_bid_ic ? String(a.current_bid_ic) : 'Kein Gebot', inline: true },
-        { name: 'Gebot', value: a.current_bid != null ? dollars(a.current_bid) : '—', inline: true },
-      ],
-      footer: { text: 'Ride Out Customs · Auktion' },
-      timestamp: new Date().toISOString(),
-    });
+    await finalizeAuctionMessages(admin, auctionId);
   }
   return { ok: true };
 }
@@ -160,6 +132,8 @@ export async function deleteBid({ bidId }) {
       last_bid_at: latest ? latest.created_at : null,
     })
     .eq('id', b.auction_id);
+
+  await refreshAuctionMessage(admin, b.auction_id);
 
   return { ok: true };
 }

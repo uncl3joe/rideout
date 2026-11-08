@@ -9,7 +9,7 @@ export default function Auktion() {
   const [auctions, setAuctions] = useState(null);
   const [bids, setBids] = useState([]);
   const [contacts, setContacts] = useState([]);
-  const [nf, setNf] = useState({ model: '', startPrice: '', minIncrement: '1000', endsAt: '' });
+  const [nf, setNf] = useState({ model: '', startPrice: '', minIncrement: '50000', endsAt: '' });
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
@@ -60,7 +60,7 @@ export default function Auktion() {
         endsAt: nf.endsAt,
       });
       if (!res.ok) return flash('Fehler: ' + res.error);
-      setNf({ model: '', startPrice: '', minIncrement: '1000', endsAt: '' });
+      setNf({ model: '', startPrice: '', minIncrement: '50000', endsAt: '' });
       setFile(null);
       flash('Auktion gestartet ✓');
       load();
@@ -106,7 +106,7 @@ export default function Auktion() {
           <div className="fields" style={{ gridTemplateColumns: '1.4fr .8fr .8fr 1.2fr auto auto', marginTop: 0, alignItems: 'end' }}>
             <div className="field"><label>Modell</label><input value={nf.model} onChange={(e) => setNf({ ...nf, model: e.target.value })} placeholder="z. B. Pfister Comet" /></div>
             <div className="field"><label>Startpreis</label><input className="num" type="number" min="0" value={nf.startPrice} onChange={(e) => setNf({ ...nf, startPrice: e.target.value })} placeholder="0" /></div>
-            <div className="field"><label>Mindest-Erhöhung</label><input className="num" type="number" min="1" value={nf.minIncrement} onChange={(e) => setNf({ ...nf, minIncrement: e.target.value })} placeholder="1000" /></div>
+            <div className="field"><label>Mindest-Erhöhung</label><input className="num" type="number" min="50000" step="1000" value={nf.minIncrement} onChange={(e) => setNf({ ...nf, minIncrement: e.target.value })} placeholder="50000" /></div>
             <div className="field"><label>Ablauf</label><input type="datetime-local" value={nf.endsAt} onChange={(e) => setNf({ ...nf, endsAt: e.target.value })} /></div>
             <div className="field"><label>Foto</label><input type="file" accept="image/*" onChange={(e) => setFile(e.target.files[0] || null)} /></div>
             <button className="save" style={{ marginTop: 0, width: 'auto', padding: '10px 16px', fontSize: 13 }} onClick={add} disabled={busy}>{busy ? '…' : 'Starten'}</button>

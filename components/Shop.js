@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { reserveVehicle } from '@/app/shop-actions';
 
 const fmt = (n) => Math.round(n || 0).toLocaleString('de-DE') + ' $';
@@ -27,8 +27,27 @@ export default function Shop({ vehicles }) {
   const [done, setDone] = useState(null);
   const [err, setErr] = useState('');
   const [localStatus, setLocalStatus] = useState({});
+  const [blocked, setBlocked] = useState(null);
 
   const statusOf = (v) => localStatus[v.id] || v.status;
+
+  // Nur eine offene Reservierung pro Browser. Wir merken uns das reservierte
+  // Fahrzeug lokal und sperren weitere Reservierungen, solange es reserviert ist.
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('roc_reservation');
+      if (!raw) return setBlocked(null);
+      const saved = JSON.parse(raw);
+      const v = vehicles.find((x) => x.id === saved.id);
+      if (v && v.status === 'reserviert') setBlocked({ model: saved.model || v.model });
+      else {
+        localStorage.removeItem('roc_reservation');
+        setBlocked(null);
+      }
+    } catch {
+      /* localStorage evtl. nicht verfügbar */
+    }
+  }, [vehicles]);
 
   const list = useMemo(() => {
     let v = vehicles.slice();
@@ -49,6 +68,12 @@ export default function Shop({ vehicles }) {
     setBusy(false);
     if (!res.ok) return setErr(res.error);
     setLocalStatus((m) => ({ ...m, [reserve.id]: 'reserviert' }));
+    try {
+      localStorage.setItem('roc_reservation', JSON.stringify({ id: reserve.id, model: reserve.model }));
+    } catch {
+      /* egal */
+    }
+    setBlocked({ model: reserve.model });
     setDone({ seller: res.seller, model: reserve.model });
     setReserve(null);
     setDetail(null);
@@ -63,9 +88,27 @@ export default function Shop({ vehicles }) {
 
   return (
     <div className="shop">
-      <header className="shop-top">
+      <header className="shop-top" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo.png" className="shop-logo" alt="Ride Out Customs" />
+        <a
+          href="/auktion"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            background: '#ff7a1a',
+            color: '#111',
+            fontWeight: 800,
+            fontSize: 15,
+            padding: '13px 22px',
+            borderRadius: 12,
+            textDecoration: 'none',
+            boxShadow: '0 6px 20px rgba(255,122,26,.40)',
+          }}
+        >
+          🔨 Zu den Live-Auktionen →
+        </a>
       </header>
 
       <div className="shop-hero">
@@ -74,6 +117,13 @@ export default function Shop({ vehicles }) {
       </div>
 
       <div className="shop-wrap">
+        {blocked && (
+          <div style={{ background: 'rgba(255,122,26,.12)', border: '1px solid #ff7a1a', borderRadius: 12, padding: '14px 16px', marginBottom: 16, color: '#ffce9e', fontSize: 14 }}>
+            <b style={{ color: '#ff7a1a' }}>Du hast schon eine offene Reservierung für {blocked.model}.</b>
+            <br />
+            Du kannst erst wieder ein Fahrzeug reservieren, wenn diese abgeschlossen ist.
+          </div>
+        )}
         <div className="shop-bar">
           <input className="shop-search" placeholder="Fahrzeug oder Verkäufer suchen …" value={q} onChange={(e) => setQ(e.target.value)} />
           <select value={sort} onChange={(e) => setSort(e.target.value)}>
@@ -127,9 +177,13 @@ export default function Shop({ vehicles }) {
               <div className="lb-seller">Verkäufer: {detail.seller_name || '—'}</div>
               <div style={{ marginTop: 10 }}>{badge(detail)}</div>
               {statusOf(detail) === 'verfuegbar' ? (
-                <button className="save" style={{ marginTop: 18 }} onClick={() => { setReserve(detail); setErr(''); }}>
-                  Reservieren
-                </button>
+                blocked ? (
+                  <div className="lb-note">Du hast schon eine offene Reservierung für {blocked.model}. Erst wieder möglich, wenn diese abgeschlossen ist.</div>
+                ) : (
+                  <button className="save" style={{ marginTop: 18 }} onClick={() => { setReserve(detail); setErr(''); }}>
+                    Reservieren
+                  </button>
+                )
               ) : (
                 <div className="lb-note">Dieses Fahrzeug ist nicht mehr verfügbar.</div>
               )}

@@ -3,6 +3,12 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v22 – Auktion in Discord & Shop-Feinschliff
+- Fahrzeughandel: großer oranger Button oben rechts direkt zu den Live-Auktionen.
+- Pro Browser nur noch eine offene Reservierung gleichzeitig, mit Hinweis-Banner.
+- Auktion: Mindest-Erhöhung ab 50.000, Schnell-Buttons +50K und +100K (statt +10K).
+- Öffentliche Live-Auktion in Discord: eine Nachricht je Auktion, die sich bei jedem Gebot selbst aktualisiert (Höchstgebot, letzte Gebote, Restzeit), plus Nachricht bei Start und Ende.
+
 ## v21 – Changelog automatisch nach Discord
 - Projekt-Changelog (diese Datei) eingeführt, mit der kompletten Historie.
 - Neue Versionen werden ab jetzt automatisch in einen Discord-Channel gepostet.

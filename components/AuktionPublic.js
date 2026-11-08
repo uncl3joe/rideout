@@ -164,8 +164,8 @@ export default function AuktionPublic({ initialAuctions, initialBids }) {
           {!isEnded && (
             <div style={{ marginTop: 14 }}>
               <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                <button style={S.quick} disabled={busy === a.id} onClick={() => doBid(a, quickBase(a) + 10000)}>+10K</button>
                 <button style={S.quick} disabled={busy === a.id} onClick={() => doBid(a, quickBase(a) + 50000)}>+50K</button>
+                <button style={S.quick} disabled={busy === a.id} onClick={() => doBid(a, quickBase(a) + 100000)}>+100K</button>
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
                 <input
