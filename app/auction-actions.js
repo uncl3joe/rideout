@@ -3,7 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireLeitung } from '@/lib/guards';
 import { effectiveEndMs } from '@/lib/cleanup';
-import { buildAuctionEmbed, postAuctionMessage, refreshAuctionMessage, finalizeAuctionMessages } from '@/lib/auction-discord';
+import { buildAuctionEmbed, postAuctionMessage, refreshAuctionMessage, finalizeAuctionMessages, deleteAuctionMessages } from '@/lib/auction-discord';
 
 const MIN_INCREMENT = 50000;
 const dollars = (n) => Number(n || 0).toLocaleString('de-DE') + ' $';
@@ -43,7 +43,7 @@ export async function placeBid({ auctionId, icName, discordName, amount }) {
 }
 
 // ---------------- Backend (Leitung) ----------------
-export async function createAuction({ model, imageUrl, startPrice, minIncrement, endsAt }) {
+export async function createAuction({ model, imageUrl, startPrice, minIncrement, endsAt, sellerId, customerName }) {
   const chk = await requireLeitung();
   if (chk.error) return { ok: false, error: chk.error };
   const admin = createAdminClient();
@@ -56,7 +56,21 @@ export async function createAuction({ model, imageUrl, startPrice, minIncrement,
     return { ok: false, error: 'Ablaufzeit muss in der Zukunft liegen.' };
   }
 
-  const { data: prof } = await admin.from('profiles').select('name').eq('id', chk.user.id).single();
+  // Anbieter bestimmen: entweder ein Kundenfahrzeug (freier Name, kein seller_id)
+  // oder das Fahrzeug eines Teammitglieds (seller_id + Name aus dem Profil).
+  const cust = String(customerName || '').trim();
+  let seller_id = null;
+  let seller_name = '';
+  if (cust) {
+    if (cust.length > 60) return { ok: false, error: 'Kundenname zu lang.' };
+    seller_name = cust;
+  } else {
+    const pid = sellerId || chk.user.id;
+    const { data: prof } = await admin.from('profiles').select('name').eq('id', pid).single();
+    seller_id = pid;
+    seller_name = prof?.name || '';
+  }
+
   const { data: a, error } = await admin
     .from('auctions')
     .insert({
@@ -66,8 +80,8 @@ export async function createAuction({ model, imageUrl, startPrice, minIncrement,
       min_increment: Math.max(MIN_INCREMENT, Math.round(Number(minIncrement) || MIN_INCREMENT)),
       ends_at: ends.toISOString(),
       status: 'live',
-      seller_id: chk.user.id,
-      seller_name: prof?.name || '',
+      seller_id,
+      seller_name,
     })
     .select('id, model, image_url, start_price, min_increment, current_bid, current_bid_ic, last_bid_at, ends_at, status')
     .single();
@@ -93,7 +107,7 @@ export async function endAuction({ auctionId }) {
 
   const { data: upd } = await admin
     .from('auctions')
-    .update({ status: 'ended', winner_ic: a.current_bid_ic || null })
+    .update({ status: 'ended', winner_ic: a.current_bid_ic || null, ended_at: new Date().toISOString() })
     .eq('id', auctionId)
     .eq('status', 'live')
     .select('id');
@@ -144,6 +158,9 @@ export async function deleteAuction({ auctionId }) {
   const admin = createAdminClient();
   if (!admin) return { ok: false, error: 'Service-Schlüssel fehlt.' };
   if (!auctionId) return { ok: false, error: 'Keine Auktion gewählt.' };
+  // Erst die Discord-Nachrichten entfernen, dann die Auktion löschen.
+  const { data: a } = await admin.from('auctions').select('discord_message_id, discord_end_message_id').eq('id', auctionId).single();
+  if (a) await deleteAuctionMessages(a);
   const { error } = await admin.from('auctions').delete().eq('id', auctionId);
   if (error) return { ok: false, error: error.message };
   return { ok: true };

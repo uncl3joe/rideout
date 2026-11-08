@@ -5,11 +5,15 @@ import { createClient } from '@/lib/supabase/client';
 import { fmt } from '@/lib/format';
 import { createAuction, endAuction, deleteBid, deleteAuction } from '@/app/auction-actions';
 
-export default function Auktion() {
+export default function Auktion({ userId, myName }) {
   const [auctions, setAuctions] = useState(null);
   const [bids, setBids] = useState([]);
   const [contacts, setContacts] = useState([]);
+  const [team, setTeam] = useState([]);
   const [nf, setNf] = useState({ model: '', startPrice: '', minIncrement: '50000', endsAt: '' });
+  // Anbieter: eine Profil-ID (Teamfahrzeug) oder der Sentinel '__kunde__' (Kundenfahrzeug).
+  const [sellerSel, setSellerSel] = useState(userId || '');
+  const [customerName, setCustomerName] = useState('');
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
@@ -21,14 +25,16 @@ export default function Auktion() {
 
   async function load() {
     const sb = createClient();
-    const [a, b, c] = await Promise.all([
+    const [a, b, c, t] = await Promise.all([
       sb.from('auctions').select('*').order('created_at', { ascending: false }),
       sb.from('bids').select('id, auction_id, ic_name, amount, created_at').order('amount', { ascending: false }),
       sb.from('bid_contacts').select('bid_id, discord_name'),
+      sb.from('profiles').select('id, name').order('name'),
     ]);
     setAuctions(a.data || []);
     setBids(b.data || []);
     setContacts(c.data || []);
+    setTeam(t.data || []);
   }
   useEffect(() => {
     load();
@@ -48,6 +54,8 @@ export default function Auktion() {
   async function add() {
     if (!nf.model.trim()) return flash('Modell angeben.');
     if (!nf.endsAt) return flash('Ablaufzeit angeben.');
+    const isKunde = sellerSel === '__kunde__';
+    if (isKunde && !customerName.trim()) return flash('Kundenname angeben.');
     setBusy(true);
     try {
       let imageUrl = null;
@@ -58,9 +66,13 @@ export default function Auktion() {
         startPrice: nf.startPrice,
         minIncrement: nf.minIncrement,
         endsAt: nf.endsAt,
+        sellerId: isKunde ? null : sellerSel,
+        customerName: isKunde ? customerName : '',
       });
       if (!res.ok) return flash('Fehler: ' + res.error);
       setNf({ model: '', startPrice: '', minIncrement: '50000', endsAt: '' });
+      setSellerSel(userId || '');
+      setCustomerName('');
       setFile(null);
       flash('Auktion gestartet ✓');
       load();
@@ -103,8 +115,21 @@ export default function Auktion() {
       <div className="card" style={{ marginBottom: 18 }}>
         <div className="hd"><h2>Neue Auktion</h2></div>
         <div className="bd">
-          <div className="fields" style={{ gridTemplateColumns: '1.4fr .8fr .8fr 1.2fr auto auto', marginTop: 0, alignItems: 'end' }}>
+          <div className="fields" style={{ gridTemplateColumns: sellerSel === '__kunde__' ? '1.4fr 1fr 1.2fr' : '1.4fr 1fr', marginTop: 0, alignItems: 'end' }}>
             <div className="field"><label>Modell</label><input value={nf.model} onChange={(e) => setNf({ ...nf, model: e.target.value })} placeholder="z. B. Pfister Comet" /></div>
+            <div className="field"><label>Anbieter</label>
+              <select value={sellerSel} onChange={(e) => setSellerSel(e.target.value)}>
+                {(team.length ? team : (userId ? [{ id: userId, name: myName }] : [])).map((t) => (
+                  <option key={t.id} value={t.id}>Fahrzeug von {t.name}</option>
+                ))}
+                <option value="__kunde__">Kundenfahrzeug …</option>
+              </select>
+            </div>
+            {sellerSel === '__kunde__' && (
+              <div className="field"><label>Kundenname</label><input value={customerName} onChange={(e) => setCustomerName(e.target.value)} placeholder="Name des Kunden" /></div>
+            )}
+          </div>
+          <div className="fields" style={{ gridTemplateColumns: '.8fr .8fr 1.2fr auto auto', marginTop: 10, alignItems: 'end' }}>
             <div className="field"><label>Startpreis</label><input className="num" type="number" min="0" value={nf.startPrice} onChange={(e) => setNf({ ...nf, startPrice: e.target.value })} placeholder="0" /></div>
             <div className="field"><label>Mindest-Erhöhung</label><input className="num" type="number" min="50000" step="1000" value={nf.minIncrement} onChange={(e) => setNf({ ...nf, minIncrement: e.target.value })} placeholder="50000" /></div>
             <div className="field"><label>Ablauf</label><input type="datetime-local" value={nf.endsAt} onChange={(e) => setNf({ ...nf, endsAt: e.target.value })} /></div>
@@ -130,6 +155,7 @@ export default function Auktion() {
               </div>
               <div className="bd">
                 <div className="meta" style={{ marginBottom: 10 }}>
+                  <span>Anbieter: <b>{a.seller_name || '—'}</b>{!a.seller_id && a.seller_name ? ' (Kunde)' : ''}</span>
                   <span>Start: <b>{fmt(a.start_price)}</b></span>
                   <span>Mindest-Erhöhung: <b>{fmt(a.min_increment)}</b></span>
                   <span>Höchstgebot: <b>{a.current_bid != null ? fmt(a.current_bid) : '—'}</b>{a.current_bid_ic ? ' (' + a.current_bid_ic + ')' : ''}</span>

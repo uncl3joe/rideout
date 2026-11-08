@@ -13,7 +13,7 @@ export default async function ShopPage() {
   const supabase = createClient();
   const { data: vehicles } = await supabase
     .from('vehicles')
-    .select('id, model, price, seller_name, status, image_url, created_at')
+    .select('id, model, price, seller_name, status, image_url, reserve_24h, created_at')
     .order('created_at', { ascending: false });
 
   return <Shop vehicles={vehicles || []} />;

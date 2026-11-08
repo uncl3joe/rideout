@@ -3,6 +3,13 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v23 – Discord-Aufräumen, Kundenauktionen & Reservierungs-Hinweis
+- Beim Anlegen einer Auktion lässt sich jetzt der Anbieter wählen: entweder das Fahrzeug eines Teammitglieds oder ein Kundenfahrzeug (freier Name). Der Anbieter steht bei jeder Auktion im Backend.
+- Beendete Auktionen bleiben noch eine Stunde im Live-Auktionen-Channel sichtbar und werden dann automatisch daraus gelöscht.
+- Eine im Backend gelöschte Auktion verschwindet sofort aus dem Channel.
+- Reservierungs-Meldungen im Discord verschwinden jetzt automatisch, sobald das Fahrzeug im Backend wieder auf „verfügbar" oder „verkauft" gesetzt, die Reservierung gelöscht oder als erledigt markiert wird.
+- Beim Reservieren sieht der Kunde jetzt, wenn ein Fahrzeug nur 24 Stunden reserviert wird (bei normalen Reservierungen bleibt es wie bisher).
+
 ## v22 – Auktion in Discord & Shop-Feinschliff
 - Fahrzeughandel: großer oranger Button oben rechts direkt zu den Live-Auktionen.
 - Pro Browser nur noch eine offene Reservierung gleichzeitig, mit Hinweis-Banner.

@@ -168,7 +168,7 @@ export default function Shell({ profile, services }) {
           {view === 'vertraege' && <Vertraege role={role} />}
           {view === 'katalog' && <Katalog />}
           {view === 'autohandel' && <Autohandel role={role} userId={profile.id} myName={profile.name} />}
-          {view === 'auktion' && <Auktion />}
+          {view === 'auktion' && <Auktion userId={profile.id} myName={profile.name} />}
         </main>
       </div>
 

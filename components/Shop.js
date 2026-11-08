@@ -176,6 +176,11 @@ export default function Shop({ vehicles }) {
               <div className="lb-price">{fmt(detail.price)}</div>
               <div className="lb-seller">Verkäufer: {detail.seller_name || '—'}</div>
               <div style={{ marginTop: 10 }}>{badge(detail)}</div>
+              {statusOf(detail) === 'verfuegbar' && detail.reserve_24h && (
+                <div style={{ marginTop: 10, fontSize: 12.5, color: '#ff7a1a', fontWeight: 600 }}>
+                  ⏳ Dieses Fahrzeug wird nur 24 Stunden reserviert.
+                </div>
+              )}
               {statusOf(detail) === 'verfuegbar' ? (
                 blocked ? (
                   <div className="lb-note">Du hast schon eine offene Reservierung für {blocked.model}. Erst wieder möglich, wenn diese abgeschlossen ist.</div>
@@ -196,8 +201,10 @@ export default function Shop({ vehicles }) {
         <div className="modal-backdrop" onClick={() => setReserve(null)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <h3>{reserve.model} reservieren</h3>
-            <p style={{ color: 'var(--mut)', fontSize: 13, marginTop: 0 }}>
-              24 Stunden für dich reserviert — der Verkäufer meldet sich bei dir.
+            <p style={{ color: reserve.reserve_24h ? '#ff7a1a' : 'var(--mut)', fontSize: 13, marginTop: 0 }}>
+              {reserve.reserve_24h
+                ? 'Achtung: Dieses Fahrzeug wird nur 24 Stunden reserviert. Danach wird es automatisch wieder freigegeben. Der Verkäufer meldet sich bei dir.'
+                : 'Für dich reserviert, der Verkäufer meldet sich bei dir.'}
             </p>
             <div className="field"><label>Dein Name</label><input value={name} onChange={(e) => setName(e.target.value)} /></div>
             <div className="field"><label>Kontakt (Discord / Telefon)</label><input value={contact} onChange={(e) => setContact(e.target.value)} /></div>

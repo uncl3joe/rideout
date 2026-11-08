@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { setVehicleStatus, deleteVehicle, deleteReservation, markReservationHandled } from '@/app/shop-admin-actions';
 
 const fmt = (n) => Math.round(n || 0).toLocaleString('de-DE') + ' $';
 const STATUS = [
@@ -88,6 +89,15 @@ export default function Autohandel({ role, userId, myName }) {
     if (error) flash('Fehler: ' + error.message);
     else flash('Gespeichert ✓');
   }
+  // Status serverseitig setzen. Bei "verfügbar"/"verkauft" wird die offene
+  // Reservierung samt Discord-Meldung automatisch entfernt.
+  async function changeStatus(id, status) {
+    setLocal(id, 'status', status);
+    const res = await setVehicleStatus({ vehicleId: id, status });
+    if (!res.ok) return flash('Fehler: ' + res.error);
+    flash('Status gespeichert ✓');
+    loadAll(); // Reservierungen können sich geändert haben
+  }
   async function replacePhoto(id, f) {
     if (!f) return;
     try {
@@ -102,21 +112,21 @@ export default function Autohandel({ role, userId, myName }) {
   }
   async function delVehicle(id, model) {
     if (!confirm('„' + model + '" wirklich löschen?')) return;
-    const sb = createClient();
-    const { error } = await sb.from('vehicles').delete().eq('id', id);
-    if (error) return flash('Fehler: ' + error.message);
+    const res = await deleteVehicle({ vehicleId: id });
+    if (!res.ok) return flash('Fehler: ' + res.error);
     setVehicles((prev) => prev.filter((v) => v.id !== id));
     flash('Fahrzeug gelöscht');
   }
 
-  async function toggleHandled(r) {
-    const sb = createClient();
-    await sb.from('reservations').update({ handled: !r.handled }).eq('id', r.id);
-    setReservations((prev) => prev.map((x) => (x.id === r.id ? { ...x, handled: !x.handled } : x)));
+  // Erledigt markieren entfernt auch die Discord-Reservierungsmeldung.
+  async function markHandled(r) {
+    const res = await markReservationHandled({ reservationId: r.id });
+    if (!res.ok) return flash('Fehler: ' + res.error);
+    setReservations((prev) => prev.map((x) => (x.id === r.id ? { ...x, handled: true } : x)));
   }
   async function delReservation(id) {
-    const sb = createClient();
-    await sb.from('reservations').delete().eq('id', id);
+    const res = await deleteReservation({ reservationId: id });
+    if (!res.ok) return flash('Fehler: ' + res.error);
     setReservations((prev) => prev.filter((x) => x.id !== id));
   }
 
@@ -172,7 +182,7 @@ export default function Autohandel({ role, userId, myName }) {
                   <span>{new Date(r.created_at).toLocaleString('de-DE')}</span>
                 </div>
                 <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-                  <button className="btn" onClick={() => toggleHandled(r)}>Als erledigt markieren</button>
+                  <button className="btn" onClick={() => markHandled(r)}>Als erledigt markieren</button>
                   <button className="xdel" onClick={() => delReservation(r.id)} title="Löschen">✕</button>
                 </div>
               </div>
@@ -225,7 +235,7 @@ export default function Autohandel({ role, userId, myName }) {
                       <td className="l" style={{ color: 'var(--mut)' }}>{v.seller_name || '—'}</td>
                       <td className="l">
                         <select className="rolesel" value={v.status}
-                          onChange={(e) => { setLocal(v.id, 'status', e.target.value); commit(v.id, 'status', e.target.value); }}>
+                          onChange={(e) => changeStatus(v.id, e.target.value)}>
                           {STATUS.map(([val, lbl]) => <option key={val} value={val}>{lbl}</option>)}
                         </select>
                       </td>
