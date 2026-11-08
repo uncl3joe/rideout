@@ -281,3 +281,82 @@ table.tbl .pvc{color:var(--accent);font-weight:600}
 /* Mini-Foto im Verwaltungs-Tab (klickbar = ersetzen) */
 .veh-thumb{display:inline-grid;place-items:center;width:52px;height:34px;border-radius:7px;overflow:hidden;background:var(--panel2);border:1px solid var(--line);cursor:pointer;color:var(--faint)}
 .veh-thumb img{width:100%;height:100%;object-fit:cover}
+
+/* ===================== Live-Auktionen (öffentlich) ===================== */
+.ak-page{position:relative;min-height:100vh;background:var(--bg);color:var(--ink);padding:0 16px 70px;overflow:hidden}
+.ak-page::before{content:'';position:absolute;top:-200px;left:50%;transform:translateX(-50%);width:1000px;max-width:150vw;height:560px;background:radial-gradient(60% 60% at 50% 0%,rgba(255,122,26,.22),transparent 72%);pointer-events:none;z-index:0}
+.ak-inner{position:relative;z-index:1;max-width:1100px;margin:0 auto;padding-top:24px}
+.ak-top{display:flex;justify-content:center;padding:8px 0 2px}
+.ak-logo{height:46px;width:auto;display:block;filter:drop-shadow(0 6px 18px rgba(0,0,0,.55))}
+.ak-hero{text-align:center;padding:12px 0 18px}
+.ak-hero h1{font-family:var(--disp);font-weight:700;text-transform:uppercase;letter-spacing:.03em;font-size:clamp(30px,5.5vw,52px);margin:0;line-height:1.02}
+.ak-hero h1 span{color:var(--accent)}
+.ak-hero p{color:var(--mut);font-size:15px;margin:8px 0 0}
+.ak-livepill{display:inline-flex;align-items:center;gap:9px;margin-top:14px;padding:6px 15px;border-radius:999px;border:1px solid var(--accent-soft);background:rgba(255,122,26,.08);font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+.ak-dot{width:9px;height:9px;border-radius:50%;background:var(--accent);animation:akpulse 1.4s infinite}
+@keyframes akpulse{0%{box-shadow:0 0 0 0 rgba(255,122,26,.6)}70%{box-shadow:0 0 0 10px rgba(255,122,26,0)}100%{box-shadow:0 0 0 0 rgba(255,122,26,0)}}
+
+.ak-passbar{position:relative;z-index:1;max-width:1100px;margin:0 auto 22px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:16px}
+.ak-shoplink{color:var(--mut);text-decoration:none;font-size:13px;border:1px solid var(--line);padding:9px 14px;border-radius:10px;font-weight:600;white-space:nowrap}
+.ak-shoplink:hover{border-color:var(--faint);color:var(--ink)}
+
+.ak-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:18px}
+.ak-sechead{font-family:var(--disp);font-weight:600;text-transform:uppercase;letter-spacing:.08em;font-size:15px;color:var(--mut);margin:30px 0 12px}
+.ak-card{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden;transition:transform .16s,box-shadow .16s,border-color .16s}
+.ak-card.live:hover{transform:translateY(-3px);border-color:var(--accent-soft);box-shadow:0 14px 40px rgba(0,0,0,.55),0 0 0 1px var(--accent-soft)}
+.ak-card.done{opacity:.85}
+.ak-imgwrap{position:relative;aspect-ratio:16/10;background:linear-gradient(135deg,#1a1d23,#0f1115);overflow:hidden}
+.ak-imgwrap img{width:100%;height:100%;object-fit:cover;display:block}
+.ak-noimg{width:100%;height:100%;display:grid;place-items:center;color:var(--faint);font-size:14px}
+
+.ak-badge{position:absolute;top:12px;left:12px;display:inline-flex;align-items:center;gap:7px;color:#fff;font-size:11px;font-weight:800;letter-spacing:.1em;text-transform:uppercase;padding:5px 12px;border-radius:999px;backdrop-filter:blur(4px)}
+.ak-badge .d{width:8px;height:8px;border-radius:50%;background:#fff}
+.ak-badge.live{background:linear-gradient(180deg,var(--accent),var(--accent-deep));box-shadow:0 0 18px rgba(255,122,26,.55)}
+.ak-badge.live .d{animation:akpulse 1.4s infinite}
+.ak-badge.grace{background:var(--blue);box-shadow:0 0 18px rgba(55,166,234,.5)}
+.ak-badge.done{background:var(--raise);border:1px solid var(--line);color:var(--mut)}
+
+.ak-flash{position:absolute;inset:0;pointer-events:none;border-radius:16px;z-index:3;animation:akcardflash .85s ease-out forwards}
+@keyframes akcardflash{0%{box-shadow:inset 0 0 0 2px var(--accent),inset 0 0 60px rgba(255,122,26,.5);opacity:1}100%{box-shadow:inset 0 0 0 2px rgba(255,122,26,0),inset 0 0 60px rgba(255,122,26,0);opacity:0}}
+
+.ak-sold{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-14deg);border:3px solid rgba(255,255,255,.92);color:#fff;font-family:var(--disp);font-weight:700;text-transform:uppercase;letter-spacing:.12em;font-size:clamp(20px,3.6vw,32px);padding:6px 18px;border-radius:8px;background:rgba(20,21,25,.34);backdrop-filter:blur(2px);box-shadow:0 8px 30px rgba(0,0,0,.5);z-index:2;white-space:nowrap}
+
+.ak-body{padding:16px}
+.ak-model{font-family:var(--disp);font-weight:600;font-size:19px;letter-spacing:.02em;text-transform:uppercase}
+.ak-anbieter{font-size:12px;color:var(--faint);margin-top:2px}
+.ak-count{display:flex;align-items:baseline;gap:8px;margin:10px 0 12px}
+.ak-count .lab{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.ak-count .val{font-family:var(--disp);font-weight:700;font-variant-numeric:tabular-nums;font-size:20px;color:var(--mut)}
+.ak-count.grace .val{color:var(--blue)}
+.ak-count.urgent .val{color:var(--accent);animation:aktick 1s steps(1,end) infinite}
+@keyframes aktick{0%,100%{text-shadow:0 0 14px rgba(255,122,26,.7)}50%{text-shadow:0 0 3px rgba(255,122,26,.2)}}
+.ak-done-line{font-size:13px;color:var(--mut);margin:10px 0 12px}
+
+.ak-bidbox{background:linear-gradient(180deg,var(--accent-soft),var(--panel2));border:1px solid var(--accent-soft);border-radius:14px;padding:13px 16px}
+.ak-bidbox .k{font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint)}
+.ak-amount{font-family:var(--disp);font-weight:700;font-size:30px;line-height:1.05;color:var(--accent);font-variant-numeric:tabular-nums;text-shadow:0 0 22px rgba(255,122,26,.35)}
+.ak-bidbox .by{font-size:12.5px;color:var(--mut);margin-top:2px}
+
+.ak-board{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.ak-row{display:flex;align-items:center;gap:10px;font-size:13px}
+.ak-rk{width:20px;text-align:center;flex:none;font-size:13px}
+.ak-ava{width:26px;height:26px;border-radius:50%;background:var(--raise);border:1px solid var(--line);display:grid;place-items:center;font-family:var(--disp);font-weight:600;font-size:11px;color:var(--accent);flex:none;text-transform:uppercase}
+.ak-row .nm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mut)}
+.ak-row .amt{font-variant-numeric:tabular-nums;color:var(--ink)}
+.ak-row.top .ava{border-color:var(--accent);box-shadow:0 0 12px rgba(255,122,26,.4)}
+.ak-row.top .nm{color:var(--ink);font-weight:600}
+.ak-row.top .amt{color:var(--accent);font-weight:700}
+
+.ak-actions{margin-top:14px}
+.ak-quickrow{display:flex;gap:8px;margin-bottom:8px}
+.ak-quick{flex:1;padding:11px 0;border-radius:11px;border:1px solid var(--accent);background:rgba(255,122,26,.06);color:var(--accent);font-weight:800;font-size:14px;cursor:pointer;transition:transform .08s,background .15s}
+.ak-quick:hover{background:rgba(255,122,26,.14)}
+.ak-quick:active{transform:scale(.96)}
+.ak-bidrow{display:flex;gap:8px}
+.ak-input{background:var(--bg);border:1px solid var(--line);border-radius:11px;padding:11px 12px;color:inherit;font-size:14px;width:100%}
+.ak-input:focus{outline:none;border-color:var(--accent)}
+.ak-bid{padding:11px 20px;border-radius:11px;border:none;background:linear-gradient(180deg,var(--accent),var(--accent-deep));color:#160a02;font-weight:800;cursor:pointer;white-space:nowrap;font-family:var(--disp);letter-spacing:.06em;text-transform:uppercase;transition:transform .08s,filter .15s}
+.ak-bid:hover{filter:brightness(1.08)}
+.ak-bid:active{transform:scale(.97)}
+.ak-bid:disabled,.ak-quick:disabled{opacity:.5;cursor:default}
+.ak-minhint{font-size:11px;color:var(--faint);margin-top:6px}

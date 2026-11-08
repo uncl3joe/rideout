@@ -14,7 +14,7 @@ export default async function AuktionPage() {
   const supabase = createClient();
   const { data: auctions } = await supabase
     .from('auctions')
-    .select('id, model, image_url, start_price, min_increment, current_bid, current_bid_ic, last_bid_at, ends_at, status, winner_ic, created_at')
+    .select('id, model, image_url, start_price, min_increment, current_bid, current_bid_ic, last_bid_at, ends_at, status, winner_ic, seller_name, seller_id, created_at')
     .order('created_at', { ascending: false });
 
   const ids = (auctions || []).map((a) => a.id);

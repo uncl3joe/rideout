@@ -5,7 +5,6 @@ import { createClient } from '@/lib/supabase/client';
 import { placeBid } from '@/app/auction-actions';
 
 const ORANGE = '#ff7a1a';
-const BLUE = '#37a6ea';
 const fmt = (n) => Math.round(n || 0).toLocaleString('de-DE') + ' $';
 const ANTI = 30 * 1000;
 
@@ -22,6 +21,40 @@ function fmtLeft(ms) {
   const ss = s % 60;
   return (h ? h + 'h ' : '') + (h || m ? m + 'm ' : '') + ss + 's';
 }
+function initials(name) {
+  const p = String(name || '').trim().split(/\s+/).filter(Boolean);
+  if (!p.length) return '?';
+  if (p.length === 1) return p[0].slice(0, 2);
+  return p[0][0] + p[1][0];
+}
+
+// Zahl, die bei einer Änderung sanft hochzählt (für das Höchstgebot).
+function CountUp({ value, className }) {
+  const [disp, setDisp] = useState(value);
+  const fromRef = useRef(value);
+  const rafRef = useRef(0);
+  useEffect(() => {
+    const from = fromRef.current;
+    const to = value;
+    if (from === to) {
+      setDisp(to);
+      return;
+    }
+    const dur = 650;
+    const start = performance.now();
+    cancelAnimationFrame(rafRef.current);
+    const tick = (t) => {
+      const p = Math.min(1, (t - start) / dur);
+      const eased = 1 - Math.pow(1 - p, 3);
+      setDisp(Math.round(from + (to - from) * eased));
+      if (p < 1) rafRef.current = requestAnimationFrame(tick);
+      else fromRef.current = to;
+    };
+    rafRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(rafRef.current);
+  }, [value]);
+  return <span className={className}>{fmt(disp)}</span>;
+}
 
 export default function AuktionPublic({ initialAuctions, initialBids }) {
   const [auctions, setAuctions] = useState(initialAuctions || []);
@@ -32,7 +65,9 @@ export default function AuktionPublic({ initialAuctions, initialBids }) {
   const [custom, setCustom] = useState({}); // auctionId -> string
   const [busy, setBusy] = useState('');
   const [msg, setMsg] = useState('');
+  const [flashNonce, setFlashNonce] = useState({}); // auctionId -> counter, bei neuem Höchstgebot
   const msgTimer = useRef(null);
+  const prevBidRef = useRef(null);
 
   function flash(m) {
     setMsg(m);
@@ -60,11 +95,36 @@ export default function AuktionPublic({ initialAuctions, initialBids }) {
     return () => clearInterval(t);
   }, []);
 
+  // Aufblitzen, sobald ein Höchstgebot steigt (nicht beim ersten Laden).
+  useEffect(() => {
+    const map = {};
+    auctions.forEach((a) => {
+      map[a.id] = a.current_bid != null ? a.current_bid : null;
+    });
+    if (prevBidRef.current) {
+      const prev = prevBidRef.current;
+      const bumps = [];
+      Object.keys(map).forEach((id) => {
+        if (prev[id] != null && map[id] != null && map[id] > prev[id]) bumps.push(id);
+      });
+      if (bumps.length) {
+        setFlashNonce((n) => {
+          const next = { ...n };
+          bumps.forEach((id) => {
+            next[id] = (next[id] || 0) + 1;
+          });
+          return next;
+        });
+      }
+    }
+    prevBidRef.current = map;
+  }, [auctions]);
+
   async function reload() {
     const sb = createClient();
     const { data: a } = await sb
       .from('auctions')
-      .select('id, model, image_url, start_price, min_increment, current_bid, current_bid_ic, last_bid_at, ends_at, status, winner_ic, created_at')
+      .select('id, model, image_url, start_price, min_increment, current_bid, current_bid_ic, last_bid_at, ends_at, status, winner_ic, seller_name, seller_id, created_at')
       .order('created_at', { ascending: false });
     const list = a || [];
     setAuctions(list);
@@ -114,73 +174,84 @@ export default function AuktionPublic({ initialAuctions, initialBids }) {
   const card = (a) => {
     const isEnded = a.status === 'ended' || now >= effEnd(a);
     const inGrace = !isEnded && now >= new Date(a.ends_at).getTime();
+    const toEnd = new Date(a.ends_at).getTime() - now;
+    const urgent = !isEnded && !inGrace && toEnd < 60 * 1000;
     const top = bidsOf(a.id).slice(0, 5);
+    const wonBy = a.winner_ic || a.current_bid_ic;
+    const curVal = a.current_bid != null ? a.current_bid : a.start_price;
+
     return (
-      <div key={a.id} style={S.card}>
-        <div style={S.imgWrap}>
+      <div key={a.id} className={'ak-card ' + (isEnded ? 'done' : 'live')}>
+        {!isEnded && flashNonce[a.id] ? <span key={flashNonce[a.id]} className="ak-flash" aria-hidden /> : null}
+
+        <div className="ak-imgwrap">
           {a.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={a.image_url} alt={a.model} style={S.img} />
+            <img src={a.image_url} alt={a.model} />
           ) : (
-            <div style={{ ...S.img, display: 'grid', placeItems: 'center', color: 'var(--faint)' }}>Kein Foto</div>
+            <div className="ak-noimg">Kein Foto</div>
           )}
-          <div style={{ ...S.badge, background: isEnded ? '#3a3a3f' : inGrace ? BLUE : ORANGE }}>
+          <div className={'ak-badge ' + (isEnded ? 'done' : inGrace ? 'grace' : 'live')}>
+            {!isEnded && <span className="d" />}
             {isEnded ? 'Beendet' : inGrace ? 'Nachfrist' : 'Live'}
           </div>
+          {isEnded && <div className="ak-sold">{wonBy ? 'Verkauft' : 'Beendet'}</div>}
         </div>
 
-        <div style={{ padding: 16 }}>
-          <div style={S.model}>{a.model}</div>
+        <div className="ak-body">
+          <div className="ak-model">{a.model}</div>
+          {!a.seller_id && a.seller_name && <div className="ak-anbieter">Kundenfahrzeug</div>}
 
-          <div style={{ margin: '6px 0 12px', fontSize: 13, color: isEnded ? 'var(--mut)' : inGrace ? BLUE : 'var(--mut)' }}>
-            {isEnded ? (
-              <>Beendet · Gewinner: <b style={{ color: '#fff' }}>{a.winner_ic || a.current_bid_ic || 'kein Gebot'}</b></>
-            ) : inGrace ? (
-              <>⏳ Nachfrist! Endet in <b>{fmtLeft(effEnd(a) - now)}</b>, wenn kein Gebot kommt</>
-            ) : (
-              <>Endet in <b>{fmtLeft(new Date(a.ends_at).getTime() - now)}</b></>
-            )}
-          </div>
-
-          <div style={S.bidBox}>
-            <div style={{ fontSize: 11.5, color: 'var(--faint)', textTransform: 'uppercase', letterSpacing: '.04em' }}>
-              {a.current_bid != null ? 'Höchstgebot' : 'Startpreis'}
+          {isEnded ? (
+            <div className="ak-done-line">
+              Gewinner: <b style={{ color: '#fff' }}>{wonBy || 'kein Gebot'}</b>
             </div>
-            <div style={{ fontSize: 24, fontWeight: 800 }}>{fmt(a.current_bid != null ? a.current_bid : a.start_price)}</div>
-            {a.current_bid_ic && <div style={{ fontSize: 12.5, color: 'var(--mut)' }}>von {a.current_bid_ic}</div>}
+          ) : (
+            <div className={'ak-count ' + (urgent ? 'urgent' : inGrace ? 'grace' : '')}>
+              <span className="lab">{inGrace ? '⏳ Nachfrist, endet in' : 'Endet in'}</span>
+              <span className="val">{fmtLeft((inGrace ? effEnd(a) : new Date(a.ends_at).getTime()) - now)}</span>
+            </div>
+          )}
+
+          <div className="ak-bidbox">
+            <div className="k">{a.current_bid != null ? 'Höchstgebot' : 'Startpreis'}</div>
+            <CountUp value={curVal} className="ak-amount" />
+            {a.current_bid_ic && <div className="by">von {a.current_bid_ic}</div>}
           </div>
 
           {top.length > 0 && (
-            <div style={{ marginTop: 10, fontSize: 12.5, color: 'var(--mut)' }}>
+            <div className="ak-board">
               {top.map((b, i) => (
-                <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', opacity: i === 0 ? 1 : 0.7 }}>
-                  <span>{i === 0 ? '🥇 ' : ''}{b.ic_name}</span>
-                  <span className="num">{fmt(b.amount)}</span>
+                <div key={b.id} className={'ak-row' + (i === 0 ? ' top' : '')}>
+                  <span className="ak-rk">{['🥇', '🥈', '🥉'][i] || i + 1 + '.'}</span>
+                  <span className="ak-ava">{initials(b.ic_name)}</span>
+                  <span className="nm">{b.ic_name}</span>
+                  <span className="amt">{fmt(b.amount)}</span>
                 </div>
               ))}
             </div>
           )}
 
           {!isEnded && (
-            <div style={{ marginTop: 14 }}>
-              <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
-                <button style={S.quick} disabled={busy === a.id} onClick={() => doBid(a, quickBase(a) + 50000)}>+50K</button>
-                <button style={S.quick} disabled={busy === a.id} onClick={() => doBid(a, quickBase(a) + 100000)}>+100K</button>
+            <div className="ak-actions">
+              <div className="ak-quickrow">
+                <button className="ak-quick" disabled={busy === a.id} onClick={() => doBid(a, quickBase(a) + 50000)}>+50K</button>
+                <button className="ak-quick" disabled={busy === a.id} onClick={() => doBid(a, quickBase(a) + 100000)}>+100K</button>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div className="ak-bidrow">
                 <input
                   type="number"
                   inputMode="numeric"
                   placeholder={'min. ' + fmt(minNext(a))}
                   value={custom[a.id] || ''}
                   onChange={(e) => setCustom((c) => ({ ...c, [a.id]: e.target.value }))}
-                  style={S.input}
+                  className="ak-input"
                 />
-                <button style={S.bidBtn} disabled={busy === a.id} onClick={() => doBid(a, custom[a.id])}>
+                <button className="ak-bid" disabled={busy === a.id} onClick={() => doBid(a, custom[a.id])}>
                   {busy === a.id ? '…' : 'Bieten'}
                 </button>
               </div>
-              <div style={{ fontSize: 11, color: 'var(--faint)', marginTop: 6 }}>Mindestgebot: {fmt(minNext(a))}</div>
+              <div className="ak-minhint">Mindestgebot: {fmt(minNext(a))}</div>
             </div>
           )}
         </div>
@@ -189,37 +260,45 @@ export default function AuktionPublic({ initialAuctions, initialBids }) {
   };
 
   return (
-    <div style={S.page}>
-      <div style={S.inner}>
-        <header style={S.header}>
-          <div>
-            <h1 style={{ margin: 0, fontSize: 30, letterSpacing: '-0.02em' }}>
-              Live-<span style={{ color: ORANGE }}>Auktionen</span>
-            </h1>
-            <p style={{ margin: '4px 0 0', color: 'var(--mut)', fontSize: 14 }}>Biete mit und sichere dir deinen Ride.</p>
-          </div>
-          <a href="/shop" style={S.shopLink}>Zum Fahrzeughandel →</a>
-        </header>
+    <div className="ak-page">
+      <div className="ak-inner">
+        <div className="ak-top">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" className="ak-logo" alt="Ride Out Customs" />
+        </div>
+        <div className="ak-hero">
+          <h1>Live-<span>Auktionen</span></h1>
+          <p>Biete mit und sichere dir deinen Ride.</p>
+          {live.length > 0 && (
+            <div className="ak-livepill">
+              <span className="ak-dot" />
+              {live.length} {live.length === 1 ? 'Auktion läuft' : 'Auktionen laufen'}
+            </div>
+          )}
+        </div>
 
-        <div style={S.bidderBar}>
-          <div style={{ fontSize: 12.5, color: 'var(--mut)', marginBottom: 8 }}>
-            Zum Mitbieten einmalig eintragen. Öffentlich sichtbar ist nur dein IC-Name, der Discord-Name sieht nur die Werkstatt.
+        <div className="ak-passbar">
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+            <div style={{ fontSize: 12.5, color: 'var(--mut)' }}>
+              Zum Mitbieten einmalig eintragen. Öffentlich sichtbar ist nur dein IC-Name, den Discord-Namen sieht nur die Werkstatt.
+            </div>
+            <a href="/shop" className="ak-shoplink">Zum Fahrzeughandel →</a>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-            <input placeholder="IC-Name" value={ic} onChange={(e) => setIc(e.target.value)} style={{ ...S.input, flex: '1 1 180px' }} />
-            <input placeholder="Discord-Name" value={dc} onChange={(e) => setDc(e.target.value)} style={{ ...S.input, flex: '1 1 180px' }} />
+            <input placeholder="IC-Name" value={ic} onChange={(e) => setIc(e.target.value)} className="ak-input" style={{ flex: '1 1 180px' }} />
+            <input placeholder="Discord-Name" value={dc} onChange={(e) => setDc(e.target.value)} className="ak-input" style={{ flex: '1 1 180px' }} />
           </div>
         </div>
 
         {auctions.length === 0 ? (
-          <div style={{ color: 'var(--faint)', padding: '40px 0', textAlign: 'center' }}>Aktuell keine Auktionen.</div>
+          <div style={{ color: 'var(--faint)', padding: '48px 0', textAlign: 'center' }}>Aktuell keine Auktionen. Schau bald wieder vorbei! 🏁</div>
         ) : (
           <>
-            {live.length > 0 && <div style={S.grid}>{live.map(card)}</div>}
+            {live.length > 0 && <div className="ak-grid">{live.map(card)}</div>}
             {ended.length > 0 && (
               <>
-                <h2 style={{ fontSize: 16, color: 'var(--mut)', margin: '28px 0 12px' }}>Beendet</h2>
-                <div style={S.grid}>{ended.map(card)}</div>
+                <h2 className="ak-sechead">Beendet</h2>
+                <div className="ak-grid">{ended.map(card)}</div>
               </>
             )}
           </>
@@ -230,21 +309,3 @@ export default function AuktionPublic({ initialAuctions, initialBids }) {
     </div>
   );
 }
-
-const S = {
-  page: { minHeight: '100vh', background: 'var(--bg, #09090b)', color: 'var(--fg, #fff)', padding: '0 16px 60px' },
-  inner: { maxWidth: 1040, margin: '0 auto', paddingTop: 28 },
-  header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap', marginBottom: 20 },
-  shopLink: { color: 'var(--mut)', textDecoration: 'none', fontSize: 13, border: '1px solid var(--line)', padding: '8px 12px', borderRadius: 10 },
-  bidderBar: { background: 'var(--panel, #131316)', border: '1px solid var(--line)', borderRadius: 14, padding: 14, marginBottom: 22 },
-  grid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 },
-  card: { background: 'var(--panel, #131316)', border: '1px solid var(--line)', borderRadius: 16, overflow: 'hidden' },
-  imgWrap: { position: 'relative', aspectRatio: '16 / 10', background: '#0c0c0e' },
-  img: { width: '100%', height: '100%', objectFit: 'cover' },
-  badge: { position: 'absolute', top: 10, left: 10, color: '#fff', fontSize: 11.5, fontWeight: 700, padding: '4px 10px', borderRadius: 999 },
-  model: { fontSize: 18, fontWeight: 700 },
-  bidBox: { background: 'var(--bg, #09090b)', border: '1px solid var(--line)', borderRadius: 12, padding: '10px 12px' },
-  quick: { flex: 1, padding: '10px 0', borderRadius: 10, border: '1px solid ' + ORANGE, background: 'transparent', color: ORANGE, fontWeight: 700, cursor: 'pointer', fontSize: 14 },
-  input: { background: 'var(--bg, #09090b)', border: '1px solid var(--line)', borderRadius: 10, padding: '10px 12px', color: 'inherit', fontSize: 14, width: '100%' },
-  bidBtn: { padding: '10px 18px', borderRadius: 10, border: 'none', background: ORANGE, color: '#111', fontWeight: 800, cursor: 'pointer', whiteSpace: 'nowrap' },
-};
