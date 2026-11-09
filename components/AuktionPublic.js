@@ -200,7 +200,7 @@ export default function AuktionPublic({ initialAuctions, initialBids }) {
 
         <div className="ak-body">
           <div className="ak-model">{a.model}</div>
-          {!a.seller_id && a.seller_name && <div className="ak-anbieter">Kundenfahrzeug</div>}
+          {a.seller_name && <div className="ak-anbieter">{a.seller_id ? 'Fahrzeug von ' : 'Kundenfahrzeug von '}{a.seller_name}</div>}
 
           {isEnded ? (
             <div className="ak-done-line">

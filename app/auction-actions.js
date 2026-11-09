@@ -83,7 +83,7 @@ export async function createAuction({ model, imageUrl, startPrice, minIncrement,
       seller_id,
       seller_name,
     })
-    .select('id, model, image_url, start_price, min_increment, current_bid, current_bid_ic, last_bid_at, ends_at, status')
+    .select('id, model, image_url, start_price, min_increment, current_bid, current_bid_ic, last_bid_at, ends_at, status, seller_name, seller_id')
     .single();
   if (error) return { ok: false, error: error.message };
 

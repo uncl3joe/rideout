@@ -3,6 +3,11 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v24 – Anbieter in der Auktion & erweiterte Übersicht
+- In der Live-Auktion steht jetzt der Anbieter dabei, auf der Homepage und in der Discord-Meldung: bei einem Teamfahrzeug der Name des Mitarbeiters, bei einem Kundenfahrzeug der Kundenname.
+- Übersicht: die Tabelle „Leistung pro Mechaniker" zeigt jetzt Umsatz, Reingewinn, Provision und Reingewinn nach Provision, sichtbar für alle Rollen.
+- Rein additive Änderung, laufende Auktionen laufen ohne Unterbrechung weiter, kein neues SQL nötig.
+
 ## v23 – Discord-Aufräumen, Kundenauktionen & Reservierungs-Hinweis
 - Beim Anlegen einer Auktion lässt sich jetzt der Anbieter wählen: entweder das Fahrzeug eines Teammitglieds oder ein Kundenfahrzeug (freier Name). Der Anbieter steht bei jeder Auktion im Backend.
 - Beendete Auktionen bleiben noch eine Stunde im Live-Auktionen-Channel sichtbar und werden dann automatisch daraus gelöscht.

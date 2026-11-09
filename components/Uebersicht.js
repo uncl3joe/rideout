@@ -53,9 +53,10 @@ export default function Uebersicht({ role }) {
     const netto = nachProv - steuer;
     const byMech = {};
     o.forEach((x) => {
-      const m = byMech[x.mechanic_id] || (byMech[x.mechanic_id] = { auf: 0, um: 0, prov: 0 });
+      const m = byMech[x.mechanic_id] || (byMech[x.mechanic_id] = { auf: 0, um: 0, rein: 0, prov: 0 });
       m.auf += 1;
       m.um += x.umsatz;
+      m.rein += x.reingewinn || 0;
       m.prov += x.provision;
     });
     const prof = (id) => profiles.find((y) => y.id === id);
@@ -103,10 +104,12 @@ export default function Uebersicht({ role }) {
                     <th className="l">Rang</th>
                     <th>Aufträge</th>
                     <th>Umsatz</th>
-                    {canMoney && <th>Provision</th>}
+                    <th>Reingewinn</th>
+                    <th>Provision</th>
+                    <th>Reingew. n. Prov.</th>
                   </tr>
                   {data.rows.length === 0 ? (
-                    <tr><td className="l" colSpan={canMoney ? 5 : 4} style={{ color: 'var(--faint)' }}>Keine Aufträge in diesem Zeitraum.</td></tr>
+                    <tr><td className="l" colSpan={7} style={{ color: 'var(--faint)' }}>Keine Aufträge in diesem Zeitraum.</td></tr>
                   ) : (
                     data.rows.map((m) => (
                       <tr key={m.id}>
@@ -114,7 +117,9 @@ export default function Uebersicht({ role }) {
                         <td className="l"><span className={'badge ' + roleBadgeClass(m.role)}>{ROLE_LABEL[m.role] || m.role}</span></td>
                         <td className="num">{m.auf}</td>
                         <td className="num umc">{fmt(m.um)}</td>
-                        {canMoney && <td className="num pvc">{fmt(m.prov)}</td>}
+                        <td className="num">{fmt(m.rein)}</td>
+                        <td className="num pvc">{fmt(m.prov)}</td>
+                        <td className="num">{fmt(m.rein - m.prov)}</td>
                       </tr>
                     ))
                   )}
