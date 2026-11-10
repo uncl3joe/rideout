@@ -3,7 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireLeitung } from '@/lib/guards';
 import { effectiveEndMs } from '@/lib/cleanup';
-import { buildAuctionEmbed, postAuctionMessage, refreshAuctionMessage, finalizeAuctionMessages, deleteAuctionMessages } from '@/lib/auction-discord';
+import { buildAuctionEmbed, postAuctionMessage, refreshAuctionMessage, finalizeAuctionMessages, deleteAuctionMessages, sendAuctionPing } from '@/lib/auction-discord';
 
 const MIN_INCREMENT = 50000;
 const dollars = (n) => Number(n || 0).toLocaleString('de-DE') + ' $';
@@ -90,6 +90,9 @@ export async function createAuction({ model, imageUrl, startPrice, minIncrement,
   // Öffentliche Live-Nachricht in Discord posten und die Nachrichten-ID merken.
   const mid = await postAuctionMessage(buildAuctionEmbed(a, [], false));
   if (mid) await admin.from('auctions').update({ discord_message_id: mid }).eq('id', a.id);
+
+  // Bürgergruppe über den Auktionsstart informieren (eigener Ping).
+  await sendAuctionPing(a, 'start');
 
   return { ok: true, id: a.id };
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { setVehicleStatus, deleteVehicle, deleteReservation, markReservationHandled } from '@/app/shop-admin-actions';
+import { setVehicleStatus, deleteVehicle, deleteReservation, markReservationHandled, announceNewVehicle } from '@/app/shop-admin-actions';
 
 const fmt = (n) => Math.round(n || 0).toLocaleString('de-DE') + ' $';
 const STATUS = [
@@ -58,7 +58,7 @@ export default function Autohandel({ role, userId, myName }) {
       if (file) image_url = await uploadPhoto(file);
       const seller = team.find((t) => t.id === nf.seller_id);
       const sb = createClient();
-      const { error } = await sb.from('vehicles').insert({
+      const { data: created, error } = await sb.from('vehicles').insert({
         model: nf.model.trim(),
         price: Math.max(0, Math.round(Number(nf.price) || 0)),
         seller_id: nf.seller_id || null,
@@ -66,8 +66,10 @@ export default function Autohandel({ role, userId, myName }) {
         status: 'verfuegbar',
         image_url,
         reserve_24h: !!nf.reserve_24h,
-      });
+      }).select('id').single();
       if (error) throw error;
+      // Öffentliche Benachrichtigung an die Fahrzeughandel-Rolle.
+      if (created) await announceNewVehicle({ vehicleId: created.id });
       setNf({ model: '', price: '', seller_id: userId || '', reserve_24h: false });
       setFile(null);
       flash('Fahrzeug angelegt ✓');

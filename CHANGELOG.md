@@ -3,6 +3,12 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v25 – Discord-Benachrichtigungen für Bürger & Fahrzeughandel
+- Die Bürgergruppe wird im Discord jetzt bei jedem Auktionsstart markiert, dann rund 1 Stunde und noch einmal rund 15 Minuten vor Ende erinnert und beim Beenden kurz markiert.
+- Neue Fahrzeuge erscheinen jetzt wie eine Auktion als Nachricht im Fahrzeughandel-Channel, mit Bild und Ping an die Fahrzeughandel-Rolle. Beim Verkauf oder Löschen des Fahrzeugs verschwindet die Nachricht wieder aus dem Channel (eigener Webhook, eigene Rolle).
+- Der Aufräum-/Erinnerungs-Takt läuft jetzt verlässlich alle 5 Minuten direkt aus der Datenbank (Supabase pg_cron) statt über den schwankenden GitHub-Takt. Dadurch beenden sich Auktionen und laufen Reservierungen auch pünktlicher ab.
+- Jede Erinnerung geht nur einmal raus, auch wenn der Job doppelt läuft. Rein additive Änderung, laufende Auktionen bleiben unberührt.
+
 ## v24 – Anbieter in der Auktion & erweiterte Übersicht
 - In der Live-Auktion steht jetzt der Anbieter dabei, auf der Homepage und in der Discord-Meldung: bei einem Teamfahrzeug der Name des Mitarbeiters, bei einem Kundenfahrzeug der Kundenname.
 - Übersicht: die Tabelle „Leistung pro Mechaniker" zeigt jetzt Umsatz, Reingewinn, Provision und Reingewinn nach Provision, sichtbar für alle Rollen.
