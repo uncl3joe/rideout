@@ -104,6 +104,13 @@ export default function Auktion({ userId, myName }) {
     flash('Auktion gelöscht');
     load();
   }
+  async function done(a) {
+    if (!confirm('Auktion „' + a.model + '" als erledigt markieren? Sie verschwindet dann aus dem Live-Auktionen-Channel.')) return;
+    const r = await deleteAuction({ auctionId: a.id });
+    if (!r.ok) return flash('Fehler: ' + r.error);
+    flash('Auktion erledigt');
+    load();
+  }
 
   return (
     <>
@@ -183,8 +190,14 @@ export default function Auktion({ userId, myName }) {
                 </div>
 
                 <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-                  {!ended && <button className="btn" onClick={() => end(a)}>Auktion beenden</button>}
-                  <button className="xdel" title="Auktion löschen" onClick={() => del(a)}>✕ löschen</button>
+                  {ended ? (
+                    <button className="btn" onClick={() => done(a)}>✓ Erledigt (aus Channel entfernen)</button>
+                  ) : (
+                    <>
+                      <button className="btn" onClick={() => end(a)}>Auktion beenden</button>
+                      <button className="xdel" title="Auktion löschen" onClick={() => del(a)}>✕ löschen</button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

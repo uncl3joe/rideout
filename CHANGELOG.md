@@ -3,6 +3,11 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v26 – Auktions-Nachrichten zusammengefasst & Archiv
+- Der Start-Ping steckt jetzt in derselben Nachricht wie die Auktion, nicht mehr als zweite Nachricht. Beim Löschen oder Erledigen verschwindet damit alles gemeinsam.
+- Beendete Auktionen bleiben jetzt als Archiv im Live-Auktionen-Channel stehen (Gewinner weiterhin ersichtlich) und werden nicht mehr automatisch nach einer Stunde gelöscht.
+- Neuer „Erledigt"-Knopf im Backend-Auktions-Tab: damit entfernt der Ersteller eine beendete Auktion aus dem Channel, sobald das Fahrzeug an den Bieter übergeben ist.
+
 ## v25 – Discord-Benachrichtigungen für Bürger & Fahrzeughandel
 - Die Bürgergruppe wird im Discord jetzt bei jedem Auktionsstart markiert, dann rund 1 Stunde und noch einmal rund 15 Minuten vor Ende erinnert und beim Beenden kurz markiert.
 - Neue Fahrzeuge erscheinen jetzt wie eine Auktion als Nachricht im Fahrzeughandel-Channel, mit Bild und Ping an die Fahrzeughandel-Rolle. Beim Verkauf oder Löschen des Fahrzeugs verschwindet die Nachricht wieder aus dem Channel (eigener Webhook, eigene Rolle).
