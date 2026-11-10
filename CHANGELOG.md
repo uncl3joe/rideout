@@ -3,6 +3,11 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v27 – Erinnerungen räumen sich selbst auf
+- Sobald die 15-Minuten-Erinnerung kommt, verschwindet die vorherige 1-Stunden-Erinnerung aus dem Channel.
+- Sobald die Auktion beendet ist, verschwindet auch die 15-Minuten-Erinnerung. Es steht also immer nur die aktuellste Erinnerung da.
+- Wird eine Auktion gelöscht oder auf „Erledigt" gesetzt, werden eventuell noch stehende Erinnerungen ebenfalls entfernt.
+
 ## v26 – Auktions-Nachrichten zusammengefasst & Archiv
 - Der Start-Ping steckt jetzt in derselben Nachricht wie die Auktion, nicht mehr als zweite Nachricht. Beim Löschen oder Erledigen verschwindet damit alles gemeinsam.
 - Beendete Auktionen bleiben jetzt als Archiv im Live-Auktionen-Channel stehen (Gewinner weiterhin ersichtlich) und werden nicht mehr automatisch nach einer Stunde gelöscht.

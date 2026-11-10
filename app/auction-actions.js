@@ -159,7 +159,7 @@ export async function deleteAuction({ auctionId }) {
   if (!admin) return { ok: false, error: 'Service-Schlüssel fehlt.' };
   if (!auctionId) return { ok: false, error: 'Keine Auktion gewählt.' };
   // Erst die Discord-Nachrichten entfernen, dann die Auktion löschen.
-  const { data: a } = await admin.from('auctions').select('discord_message_id, discord_end_message_id').eq('id', auctionId).single();
+  const { data: a } = await admin.from('auctions').select('discord_message_id, discord_end_message_id, reminder_60_msg_id, reminder_15_msg_id').eq('id', auctionId).single();
   if (a) await deleteAuctionMessages(a);
   const { error } = await admin.from('auctions').delete().eq('id', auctionId);
   if (error) return { ok: false, error: error.message };
