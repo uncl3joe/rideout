@@ -3,6 +3,11 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v28 – Gebotsschritte dynamisch & Mindestgebot gesperrt
+- Die Schnell-Buttons richten sich jetzt nach der Mindesterhöhung der jeweiligen Auktion: ein Button mit genau der Mindesterhöhung, einer mit dem Doppelten (z. B. 30.000 ergibt +30.000 und +60.000). Vorher waren sie fix auf +50K und +100K.
+- Im freien Feld lässt sich ein Betrag unter dem Mindestgebot nicht mehr absenden, er wird sofort abgewiesen statt erst vom Server. Eine höhere eigene Zahl geht weiterhin.
+- Die Mindest-Erhöhung lässt sich im Backend jetzt ab 1.000 einstellen (vorher waren mindestens 50.000 nötig), damit die kleineren Schritte überhaupt möglich sind.
+
 ## v27 – Erinnerungen räumen sich selbst auf
 - Sobald die 15-Minuten-Erinnerung kommt, verschwindet die vorherige 1-Stunden-Erinnerung aus dem Channel.
 - Sobald die Auktion beendet ist, verschwindet auch die 15-Minuten-Erinnerung. Es steht also immer nur die aktuellste Erinnerung da.

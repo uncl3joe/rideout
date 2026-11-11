@@ -5,7 +5,8 @@ import { requireLeitung } from '@/lib/guards';
 import { effectiveEndMs } from '@/lib/cleanup';
 import { buildAuctionEmbed, postAuctionMessage, refreshAuctionMessage, finalizeAuctionMessages, deleteAuctionMessages, auctionStartContent } from '@/lib/auction-discord';
 
-const MIN_INCREMENT = 50000;
+const DEFAULT_INCREMENT = 50000; // Vorgabe im Backend-Formular
+const MIN_INCREMENT_FLOOR = 1000; // kleinste erlaubte Mindesterhöhung
 const dollars = (n) => Number(n || 0).toLocaleString('de-DE') + ' $';
 
 // ---------------- Öffentlich: Gebot abgeben ----------------
@@ -77,7 +78,7 @@ export async function createAuction({ model, imageUrl, startPrice, minIncrement,
       model,
       image_url: imageUrl || null,
       start_price: Math.max(0, Math.round(Number(startPrice) || 0)),
-      min_increment: Math.max(MIN_INCREMENT, Math.round(Number(minIncrement) || MIN_INCREMENT)),
+      min_increment: Math.max(MIN_INCREMENT_FLOOR, Math.round(Number(minIncrement) || DEFAULT_INCREMENT)),
       ends_at: ends.toISOString(),
       status: 'live',
       seller_id,

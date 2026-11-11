@@ -6,6 +6,11 @@ import { placeBid } from '@/app/auction-actions';
 
 const ORANGE = '#ff7a1a';
 const fmt = (n) => Math.round(n || 0).toLocaleString('de-DE') + ' $';
+// Kompakte Button-Beschriftung: +50K bei runden Tausendern, sonst +50.000.
+const compact = (n) => {
+  n = Math.round(Number(n) || 0);
+  return n % 1000 === 0 ? '+' + (n / 1000).toLocaleString('de-DE') + 'K' : '+' + n.toLocaleString('de-DE');
+};
 const ANTI = 30 * 1000;
 
 function effEnd(a) {
@@ -159,6 +164,8 @@ export default function AuktionPublic({ initialAuctions, initialBids }) {
     amount = Math.round(Number(amount) || 0);
     if (!ic.trim() || !dc.trim()) return flash('Bitte oben IC-Name und Discord-Name eingeben.');
     if (amount <= 0) return flash('Bitte einen Betrag eingeben.');
+    const min = minNext(a);
+    if (amount < min) return flash('Mindestens ' + fmt(min) + ' nötig.');
     setBusy(a.id);
     const res = await placeBid({ auctionId: a.id, icName: ic, discordName: dc, amount });
     setBusy('');
@@ -235,13 +242,14 @@ export default function AuktionPublic({ initialAuctions, initialBids }) {
           {!isEnded && (
             <div className="ak-actions">
               <div className="ak-quickrow">
-                <button className="ak-quick" disabled={busy === a.id} onClick={() => doBid(a, quickBase(a) + 50000)}>+50K</button>
-                <button className="ak-quick" disabled={busy === a.id} onClick={() => doBid(a, quickBase(a) + 100000)}>+100K</button>
+                <button className="ak-quick" disabled={busy === a.id} onClick={() => doBid(a, quickBase(a) + a.min_increment)}>{compact(a.min_increment)}</button>
+                <button className="ak-quick" disabled={busy === a.id} onClick={() => doBid(a, quickBase(a) + 2 * a.min_increment)}>{compact(2 * a.min_increment)}</button>
               </div>
               <div className="ak-bidrow">
                 <input
                   type="number"
                   inputMode="numeric"
+                  min={minNext(a)}
                   placeholder={'min. ' + fmt(minNext(a))}
                   value={custom[a.id] || ''}
                   onChange={(e) => setCustom((c) => ({ ...c, [a.id]: e.target.value }))}
