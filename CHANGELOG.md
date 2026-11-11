@@ -3,6 +3,11 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v29 – Keine Minus-Provision mehr
+- Ist der Reingewinn eines Auftrags null oder negativ (z. B. teures Teil wie Motor- und Leistungstuning), bekommt der Mechaniker jetzt 0 Provision statt einer Minus-Provision. Der Reingewinn selbst bleibt unverändert und darf weiterhin negativ sein, die Werkstatt trägt den Verlust.
+- Gilt serverseitig beim Speichern und Nachbearbeiten sowie in der Live-Vorschau im Terminal.
+- Bereits gespeicherte Aufträge mit Minus-Provision werden per update10.sql einmalig auf 0 gesetzt.
+
 ## v28 – Gebotsschritte dynamisch & Mindestgebot gesperrt
 - Die Schnell-Buttons richten sich jetzt nach der Mindesterhöhung der jeweiligen Auktion: ein Button mit genau der Mindesterhöhung, einer mit dem Doppelten (z. B. 30.000 ergibt +30.000 und +60.000). Vorher waren sie fix auf +50K und +100K.
 - Im freien Feld lässt sich ein Betrag unter dem Mindestgebot nicht mehr absenden, er wird sofort abgewiesen statt erst vom Server. Eine höhere eigene Zahl geht weiterhin.

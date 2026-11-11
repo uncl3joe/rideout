@@ -53,7 +53,8 @@ export async function saveOrder({ customer, orderDate, screenshotSum, items }) {
   const factor = ssum > 0 && basis > 0 ? ssum / basis : 1;
   const umsatz = Math.round(basis * factor);
   const reingewinn = umsatz - material;
-  const provision = Math.round(reingewinn * rate);
+  // Provision nie negativ: bei Verlust (Reingewinn <= 0) bekommt der Mechaniker 0, keine Minus-Provision.
+  const provision = Math.max(0, Math.round(reingewinn * rate));
 
   const { data: order, error } = await supabase
     .from('orders')

@@ -142,7 +142,7 @@ export default function Terminal({ services, mechanicName, userId }) {
     const s = Number(ssum) || 0;
     const factor = s > 0 && basis > 0 ? s / basis : 1;
     const umsatz = basis * factor;
-    return { basis, factor, umsatz, material, reingewinn: umsatz - material, provision: (umsatz - material) * PROV };
+    return { basis, factor, umsatz, material, reingewinn: umsatz - material, provision: Math.max(0, (umsatz - material) * PROV) };
   }, [lines, ssum, byName]);
 
   function addLine() {
