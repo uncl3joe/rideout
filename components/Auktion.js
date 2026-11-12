@@ -17,6 +17,8 @@ export default function Auktion({ userId, myName }) {
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  // Uhr für die 48-Stunden-Abholfrist (aktualisiert sich alle 30 s).
+  const [now, setNow] = useState(Date.now());
 
   function flash(m) {
     setMsg(m);
@@ -38,10 +40,24 @@ export default function Auktion({ userId, myName }) {
   }
   useEffect(() => {
     load();
+    const t = setInterval(() => setNow(Date.now()), 30000);
+    return () => clearInterval(t);
   }, []);
 
   const discordOf = (bidId) => contacts.find((c) => c.bid_id === bidId)?.discord_name || '—';
   const bidsOf = (aid) => bids.filter((b) => b.auction_id === aid);
+
+  // 48-Stunden-Abholfrist ab Auktionsende. Gibt {text, expired} oder null zurück.
+  const PICKUP_MS = 48 * 3600 * 1000;
+  function pickupInfo(a) {
+    if (a.status !== 'ended' || !a.winner_ic || !a.ended_at) return null;
+    const left = new Date(a.ended_at).getTime() + PICKUP_MS - now;
+    if (left <= 0) return { expired: true };
+    const totalMin = Math.floor(left / 60000);
+    const std = Math.floor(totalMin / 60);
+    const min = totalMin % 60;
+    return { expired: false, text: 'noch ' + std + ' Std ' + min + ' Min' };
+  }
 
   async function uploadPhoto(f) {
     const sb = createClient();
@@ -154,8 +170,14 @@ export default function Auktion({ userId, myName }) {
         auctions.map((a) => {
           const list = bidsOf(a.id);
           const ended = a.status === 'ended';
+          const pu = pickupInfo(a);
+          const cardStyle = { marginBottom: 16 };
+          if (pu?.expired) {
+            cardStyle.borderColor = '#ff5a5a';
+            cardStyle.background = 'rgba(255,60,60,.06)';
+          }
           return (
-            <div className="card" key={a.id} style={{ marginBottom: 16 }}>
+            <div className="card" key={a.id} style={cardStyle}>
               <div className="hd">
                 <h2>{a.model}</h2>
                 <span className={'tag'}>{ended ? 'Beendet' : 'Live'} · {new Date(a.ends_at).toLocaleString('de-DE')}</span>
@@ -168,6 +190,18 @@ export default function Auktion({ userId, myName }) {
                   <span>Höchstgebot: <b>{a.current_bid != null ? fmt(a.current_bid) : '—'}</b>{a.current_bid_ic ? ' (' + a.current_bid_ic + ')' : ''}</span>
                   {ended && <span>Gewinner: <b>{a.winner_ic || 'kein Gebot'}</b></span>}
                 </div>
+
+                {pu && (
+                  pu.expired ? (
+                    <div style={{ margin: '0 0 10px', padding: '8px 12px', borderRadius: 8, background: 'rgba(255,60,60,.12)', border: '1px solid #ff5a5a', color: '#ff8a8a', fontSize: 13, fontWeight: 600 }}>
+                      ⌛ Abgelaufen, nicht abgeholt. Fahrzeug kann erneut versteigert werden.
+                    </div>
+                  ) : (
+                    <div style={{ margin: '0 0 10px', padding: '8px 12px', borderRadius: 8, background: 'rgba(255,122,26,.10)', border: '1px solid rgba(255,122,26,.4)', color: 'var(--mut)', fontSize: 13 }}>
+                      🕓 Abholfrist: <b style={{ color: 'var(--txt)' }}>{pu.text}</b>
+                    </div>
+                  )
+                )}
 
                 <div className="tw">
                   <table className="tbl">

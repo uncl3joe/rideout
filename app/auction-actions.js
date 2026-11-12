@@ -3,7 +3,8 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireLeitung } from '@/lib/guards';
 import { effectiveEndMs } from '@/lib/cleanup';
-import { buildAuctionEmbed, postAuctionMessage, refreshAuctionMessage, finalizeAuctionMessages, deleteAuctionMessages, auctionStartContent } from '@/lib/auction-discord';
+import { postAuctionStart, finalizeAuctionMessages } from '@/lib/auction-discord';
+import { sweepPings } from '@/lib/discord-pings';
 
 const DEFAULT_INCREMENT = 50000; // Vorgabe im Backend-Formular
 const MIN_INCREMENT_FLOOR = 1000; // kleinste erlaubte Mindesterhöhung
@@ -38,8 +39,7 @@ export async function placeBid({ auctionId, icName, discordName, amount }) {
   await admin.from('bid_contacts').insert({ bid_id: bid.id, auction_id: auctionId, discord_name: discordName });
   await admin.from('auctions').update({ current_bid: amount, current_bid_ic: icName, last_bid_at: nowIso }).eq('id', auctionId);
 
-  await refreshAuctionMessage(admin, auctionId); // Live-Nachricht in Discord aktualisieren
-
+  // Kein Discord-Update mehr pro Gebot. Die Live-Ansicht läuft auf /auktion.
   return { ok: true, amount };
 }
 
@@ -88,9 +88,8 @@ export async function createAuction({ model, imageUrl, startPrice, minIncrement,
     .single();
   if (error) return { ok: false, error: error.message };
 
-  // Öffentliche Live-Nachricht posten, der Start-Ping steckt in derselben Nachricht.
-  const mid = await postAuctionMessage(buildAuctionEmbed(a, [], false), auctionStartContent(a));
-  if (mid) await admin.from('auctions').update({ discord_message_id: mid }).eq('id', a.id);
+  // Transienter Start-Ping im Auktions-Channel (verschwindet automatisch wieder).
+  await postAuctionStart(admin, a);
 
   return { ok: true, id: a.id };
 }
@@ -148,8 +147,6 @@ export async function deleteBid({ bidId }) {
     })
     .eq('id', b.auction_id);
 
-  await refreshAuctionMessage(admin, b.auction_id);
-
   return { ok: true };
 }
 
@@ -159,9 +156,8 @@ export async function deleteAuction({ auctionId }) {
   const admin = createAdminClient();
   if (!admin) return { ok: false, error: 'Service-Schlüssel fehlt.' };
   if (!auctionId) return { ok: false, error: 'Keine Auktion gewählt.' };
-  // Erst die Discord-Nachrichten entfernen, dann die Auktion löschen.
-  const { data: a } = await admin.from('auctions').select('discord_message_id, discord_end_message_id, reminder_60_msg_id, reminder_15_msg_id').eq('id', auctionId).single();
-  if (a) await deleteAuctionMessages(a);
+  // Erst alle Ping-Nachrichten der Auktion entfernen, dann die Auktion löschen.
+  await sweepPings(admin, auctionId);
   const { error } = await admin.from('auctions').delete().eq('id', auctionId);
   if (error) return { ok: false, error: error.message };
   return { ok: true };

@@ -2,7 +2,8 @@
 
 import { createAdminClient } from '@/lib/supabase/admin';
 import { requireLeitung } from '@/lib/guards';
-import { postVehicleMessage, deleteVehicleMessage } from '@/lib/shop-discord';
+import { postVehicleMessage } from '@/lib/shop-discord';
+import { sweepPings } from '@/lib/discord-pings';
 
 // Löscht die interne Discord-Reservierungsmeldung (falls vorhanden).
 async function deleteReservationDiscord(messageId) {
@@ -39,13 +40,9 @@ export async function setVehicleStatus({ vehicleId, status }) {
   if (status === 'verfuegbar' || status === 'verkauft') {
     await clearReservations(admin, vehicleId);
   }
-  // Beim Verkauf das Fahrzeug aus dem Fahrzeughandel-Channel entfernen.
+  // Beim Verkauf den Fahrzeug-Ping aus dem Fahrzeughandel-Channel entfernen.
   if (status === 'verkauft') {
-    const { data: v } = await admin.from('vehicles').select('shop_message_id').eq('id', vehicleId).single();
-    if (v?.shop_message_id) {
-      await deleteVehicleMessage(v.shop_message_id);
-      await admin.from('vehicles').update({ shop_message_id: null }).eq('id', vehicleId);
-    }
+    await sweepPings(admin, vehicleId);
   }
   return { ok: true };
 }
@@ -57,9 +54,8 @@ export async function deleteVehicle({ vehicleId }) {
   const admin = createAdminClient();
   if (!admin) return { ok: false, error: 'Service-Schlüssel fehlt.' };
   if (!vehicleId) return { ok: false, error: 'Kein Fahrzeug gewählt.' };
-  // Fahrzeug-Nachricht im Fahrzeughandel-Channel entfernen, dann aufräumen und löschen.
-  const { data: v } = await admin.from('vehicles').select('shop_message_id').eq('id', vehicleId).single();
-  if (v?.shop_message_id) await deleteVehicleMessage(v.shop_message_id);
+  // Fahrzeug-Ping im Fahrzeughandel-Channel entfernen, dann aufräumen und löschen.
+  await sweepPings(admin, vehicleId);
   await clearReservations(admin, vehicleId);
   const { error } = await admin.from('vehicles').delete().eq('id', vehicleId);
   if (error) return { ok: false, error: error.message };
@@ -102,10 +98,7 @@ export async function announceNewVehicle({ vehicleId }) {
   const admin = createAdminClient();
   if (!admin) return { ok: false, error: 'Service-Schlüssel fehlt.' };
   if (!vehicleId) return { ok: false, error: 'Kein Fahrzeug gewählt.' };
-  const { data: v } = await admin.from('vehicles').select('model, price, seller_name, image_url').eq('id', vehicleId).single();
-  if (v) {
-    const mid = await postVehicleMessage(v);
-    if (mid) await admin.from('vehicles').update({ shop_message_id: mid }).eq('id', vehicleId);
-  }
+  const { data: v } = await admin.from('vehicles').select('id, model, price, seller_name, image_url').eq('id', vehicleId).single();
+  if (v) await postVehicleMessage(admin, v);
   return { ok: true };
 }

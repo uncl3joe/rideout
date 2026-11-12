@@ -3,6 +3,14 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v30 – Ping-Channels & 48-Stunden-Abholfrist
+- Der Auktions- und der Fahrzeughandel-Channel sind jetzt reine Ping-Channels. Es gibt kein dauerhaftes Live-Board und keine Archiv-Nachricht mehr. Jeder Ping (Auktionsstart, Erinnerungen, Auktionsende, neues Fahrzeug) verschwindet automatisch nach spätestens 30 Minuten wieder. Die Live-Ansicht und das Mitbieten laufen weiterhin auf /auktion, der Fahrzeughandel auf /shop.
+- Dreifache Absicherung beim Aufräumen: zeitlich (nach 30 Minuten), ablösend (eine neue Erinnerung entfernt die vorherige) und beim Abschluss (verkauft, beendet, erledigt oder gelöscht räumt alle Pings des Objekts auf einmal weg). Dafür gibt es die neue Tabelle discord_pings.
+- Auktions-Erinnerungen jetzt dreistufig: rund 2 Stunden, 1 Stunde und 15 Minuten vor Ende (vorher nur 1 Stunde und 15 Minuten). Es steht immer nur die aktuellste im Channel.
+- Neue 48-Stunden-Abholfrist: Ist eine Auktion mit Gewinner beendet, zeigt die Auktion im Backend einen Countdown „Abholfrist: noch X Std Y Min". Läuft die Frist ab, färbt sich die Karte rot und zeigt „Abgelaufen, nicht abgeholt". Das Fahrzeug kann dann manuell erneut versteigert werden.
+- Die Reservierungs-Meldungen im Reservierungs-Channel bleiben unverändert (sie stehen wie gehabt, bis sie erledigt oder abgelaufen sind).
+- Neues SQL: update11.sql (Tabelle discord_pings plus reminder_120-Spalten). Bitte vor dem Upload im Supabase SQL-Editor ausführen.
+
 ## v29 – Keine Minus-Provision mehr
 - Ist der Reingewinn eines Auftrags null oder negativ (z. B. teures Teil wie Motor- und Leistungstuning), bekommt der Mechaniker jetzt 0 Provision statt einer Minus-Provision. Der Reingewinn selbst bleibt unverändert und darf weiterhin negativ sein, die Werkstatt trägt den Verlust.
 - Gilt serverseitig beim Speichern und Nachbearbeiten sowie in der Live-Vorschau im Terminal.
