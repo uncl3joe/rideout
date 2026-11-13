@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { shrinkImage } from '@/lib/image-resize';
+import { shrinkImage, storagePathFromPublicUrl } from '@/lib/image-resize';
 import { runImageOptimization } from '@/lib/image-optimize-run';
-import { setVehicleStatus, deleteVehicle, deleteReservation, markReservationHandled, announceNewVehicle } from '@/app/shop-admin-actions';
+import { setVehicleStatus, deleteVehicle, deleteReservation, markReservationHandled, announceNewVehicle, replaceEntityImage } from '@/app/shop-admin-actions';
 
 const fmt = (n) => Math.round(n || 0).toLocaleString('de-DE') + ' $';
 const STATUS = [
@@ -77,7 +77,7 @@ export default function Autohandel({ role, userId, myName }) {
     // Bild vor dem Upload verkleinern/komprimieren (spart Bandbreite).
     const small = await shrinkImage(f);
     const path = Date.now() + '_' + small.name.replace(/[^a-zA-Z0-9.]/g, '_');
-    const { error } = await sb.storage.from('vehicles').upload(path, small, { upsert: false, contentType: small.type || undefined });
+    const { error } = await sb.storage.from('vehicles').upload(path, small, { upsert: false, contentType: small.type || undefined, cacheControl: '2592000' });
     if (error) throw error;
     return sb.storage.from('vehicles').getPublicUrl(path).data.publicUrl;
   }
@@ -136,8 +136,11 @@ export default function Autohandel({ role, userId, myName }) {
     if (!f) return;
     try {
       const url = await uploadPhoto(f);
-      const sb = createClient();
-      await sb.from('vehicles').update({ image_url: url }).eq('id', id);
+      // Altes Bild gleich mit entfernen (über Server-Action, löscht die Datei im Speicher).
+      const cur = (vehicles || []).find((v) => v.id === id);
+      const oldPath = storagePathFromPublicUrl(cur?.image_url, 'vehicles');
+      const res = await replaceEntityImage({ table: 'vehicles', id, newUrl: url, oldPath });
+      if (!res.ok) return flash('Fehler: ' + res.error);
       setLocal(id, 'image_url', url);
       flash('Foto aktualisiert ✓');
     } catch (e) {

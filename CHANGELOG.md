@@ -3,6 +3,12 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v32 – Längeres Bild-Cache & Speicher-Aufräumen
+- Hochgeladene Bilder werden jetzt 30 Tage im Browser gecacht statt nur 1 Stunde (Supabase-Standard). Wer öfter in Shop oder Auktion schaut, lädt dasselbe Bild damit nur noch einmal statt immer wieder. Das drückt den Cached Egress zusätzlich, weil der genau aus Wiederholungsaufrufen entsteht. Gilt für neue Uploads und für die Optimierungs-Funktion aus v31.
+- Beim Löschen eines Fahrzeugs oder einer Auktion wird jetzt auch das zugehörige Foto aus dem Speicher entfernt, keine Karteileichen mehr.
+- Beim Foto-Tausch im Autohandel wird das alte Bild ebenfalls gelöscht statt liegen zu lassen.
+- Kein SQL nötig, rein Code.
+
 ## v31 – Bilder verkleinern & Bandbreite sparen
 - Fahrzeug- und Auktionsfotos werden ab jetzt schon beim Hochladen im Browser automatisch verkleinert und komprimiert (längste Kante max 1280px, WebP mit Fallback auf JPEG). Aus mehreren MB werden so meist 100 bis 300 KB. Das senkt den Supabase-Verbrauch (Cached Egress) massiv, der zuletzt das 5-GB-Limit des Free-Plans gesprengt hat.
 - Neuer Knopf „Alle Bilder jetzt optimieren" im Autohandel-Tab (nur Leitung): verkleinert einmalig auch alle bereits hochgeladenen Fahrzeug- und Auktionsbilder. Das alte Original wird dabei aus dem Speicher gelöscht, die Seite zeigt am Ende wie viel gespart wurde.

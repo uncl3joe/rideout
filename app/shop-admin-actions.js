@@ -5,6 +5,34 @@ import { requireLeitung } from '@/lib/guards';
 import { postVehicleMessage } from '@/lib/shop-discord';
 import { sweepPings } from '@/lib/discord-pings';
 
+// Objekt-Pfad aus einer öffentlichen Supabase-URL (Bucket "vehicles").
+function storagePathFromUrl(url) {
+  if (typeof url !== 'string') return null;
+  const mark = '/storage/v1/object/public/vehicles/';
+  const i = url.indexOf(mark);
+  if (i < 0) return null;
+  let p = url.slice(i + mark.length);
+  const q = p.indexOf('?');
+  if (q >= 0) p = p.slice(0, q);
+  try {
+    p = decodeURIComponent(p);
+  } catch {
+    /* Pfad bleibt wie er ist */
+  }
+  return p || null;
+}
+
+// Entfernt das zugehörige Bild aus dem Speicher (best effort, kein Fehler nach außen).
+async function removeStorageImage(admin, url) {
+  const path = storagePathFromUrl(url);
+  if (!path) return;
+  try {
+    await admin.storage.from('vehicles').remove([path]);
+  } catch {
+    /* altes Bild weg zu bekommen ist nicht kritisch */
+  }
+}
+
 // Löscht die interne Discord-Reservierungsmeldung (falls vorhanden).
 async function deleteReservationDiscord(messageId) {
   const hook = process.env.DISCORD_WEBHOOK_URL;
@@ -54,11 +82,14 @@ export async function deleteVehicle({ vehicleId }) {
   const admin = createAdminClient();
   if (!admin) return { ok: false, error: 'Service-Schlüssel fehlt.' };
   if (!vehicleId) return { ok: false, error: 'Kein Fahrzeug gewählt.' };
+  // Bild-Pfad vor dem Löschen merken, um die Datei anschließend mit zu entfernen.
+  const { data: v } = await admin.from('vehicles').select('image_url').eq('id', vehicleId).single();
   // Fahrzeug-Ping im Fahrzeughandel-Channel entfernen, dann aufräumen und löschen.
   await sweepPings(admin, vehicleId);
   await clearReservations(admin, vehicleId);
   const { error } = await admin.from('vehicles').delete().eq('id', vehicleId);
   if (error) return { ok: false, error: error.message };
+  await removeStorageImage(admin, v?.image_url);
   return { ok: true };
 }
 

@@ -65,7 +65,7 @@ export default function Auktion({ userId, myName }) {
     // Bild vor dem Upload verkleinern/komprimieren (spart Bandbreite).
     const small = await shrinkImage(f);
     const path = 'auktion_' + Date.now() + '_' + small.name.replace(/[^a-zA-Z0-9.]/g, '_');
-    const { error } = await sb.storage.from('vehicles').upload(path, small, { upsert: false, contentType: small.type || undefined });
+    const { error } = await sb.storage.from('vehicles').upload(path, small, { upsert: false, contentType: small.type || undefined, cacheControl: '2592000' });
     if (error) throw error;
     return sb.storage.from('vehicles').getPublicUrl(path).data.publicUrl;
   }

@@ -10,6 +10,34 @@ const DEFAULT_INCREMENT = 50000; // Vorgabe im Backend-Formular
 const MIN_INCREMENT_FLOOR = 1000; // kleinste erlaubte Mindesterhöhung
 const dollars = (n) => Number(n || 0).toLocaleString('de-DE') + ' $';
 
+// Objekt-Pfad aus einer öffentlichen Supabase-URL (Bucket "vehicles").
+function storagePathFromUrl(url) {
+  if (typeof url !== 'string') return null;
+  const mark = '/storage/v1/object/public/vehicles/';
+  const i = url.indexOf(mark);
+  if (i < 0) return null;
+  let p = url.slice(i + mark.length);
+  const q = p.indexOf('?');
+  if (q >= 0) p = p.slice(0, q);
+  try {
+    p = decodeURIComponent(p);
+  } catch {
+    /* Pfad bleibt wie er ist */
+  }
+  return p || null;
+}
+
+// Entfernt das zugehörige Bild aus dem Speicher (best effort).
+async function removeStorageImage(admin, url) {
+  const path = storagePathFromUrl(url);
+  if (!path) return;
+  try {
+    await admin.storage.from('vehicles').remove([path]);
+  } catch {
+    /* altes Bild weg zu bekommen ist nicht kritisch */
+  }
+}
+
 // ---------------- Öffentlich: Gebot abgeben ----------------
 export async function placeBid({ auctionId, icName, discordName, amount }) {
   icName = String(icName || '').trim();
@@ -156,9 +184,12 @@ export async function deleteAuction({ auctionId }) {
   const admin = createAdminClient();
   if (!admin) return { ok: false, error: 'Service-Schlüssel fehlt.' };
   if (!auctionId) return { ok: false, error: 'Keine Auktion gewählt.' };
+  // Bild-Pfad merken, um die Datei nach dem Löschen mit zu entfernen.
+  const { data: a } = await admin.from('auctions').select('image_url').eq('id', auctionId).single();
   // Erst alle Ping-Nachrichten der Auktion entfernen, dann die Auktion löschen.
   await sweepPings(admin, auctionId);
   const { error } = await admin.from('auctions').delete().eq('id', auctionId);
   if (error) return { ok: false, error: error.message };
+  await removeStorageImage(admin, a?.image_url);
   return { ok: true };
 }
