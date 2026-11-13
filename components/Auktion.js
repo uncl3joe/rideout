@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { fmt } from '@/lib/format';
+import { shrinkImage } from '@/lib/image-resize';
 import { createAuction, endAuction, deleteBid, deleteAuction } from '@/app/auction-actions';
 
 export default function Auktion({ userId, myName }) {
@@ -61,8 +62,10 @@ export default function Auktion({ userId, myName }) {
 
   async function uploadPhoto(f) {
     const sb = createClient();
-    const path = 'auktion_' + Date.now() + '_' + f.name.replace(/[^a-zA-Z0-9.]/g, '_');
-    const { error } = await sb.storage.from('vehicles').upload(path, f, { upsert: false });
+    // Bild vor dem Upload verkleinern/komprimieren (spart Bandbreite).
+    const small = await shrinkImage(f);
+    const path = 'auktion_' + Date.now() + '_' + small.name.replace(/[^a-zA-Z0-9.]/g, '_');
+    const { error } = await sb.storage.from('vehicles').upload(path, small, { upsert: false, contentType: small.type || undefined });
     if (error) throw error;
     return sb.storage.from('vehicles').getPublicUrl(path).data.publicUrl;
   }

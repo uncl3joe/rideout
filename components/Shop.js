@@ -140,7 +140,7 @@ export default function Shop({ vehicles }) {
                 <div className="veh-img">
                   {v.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={v.image_url} alt={v.model} />
+                    <img src={v.image_url} alt={v.model} loading="lazy" decoding="async" />
                   ) : (
                     <div className="veh-noimg">🏎️</div>
                   )}

@@ -194,7 +194,7 @@ export default function AuktionPublic({ initialAuctions, initialBids }) {
         <div className="ak-imgwrap">
           {a.image_url ? (
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={a.image_url} alt={a.model} />
+            <img src={a.image_url} alt={a.model} loading="lazy" decoding="async" />
           ) : (
             <div className="ak-noimg">Kein Foto</div>
           )}

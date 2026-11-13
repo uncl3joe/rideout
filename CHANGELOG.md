@@ -3,6 +3,12 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v31 – Bilder verkleinern & Bandbreite sparen
+- Fahrzeug- und Auktionsfotos werden ab jetzt schon beim Hochladen im Browser automatisch verkleinert und komprimiert (längste Kante max 1280px, WebP mit Fallback auf JPEG). Aus mehreren MB werden so meist 100 bis 300 KB. Das senkt den Supabase-Verbrauch (Cached Egress) massiv, der zuletzt das 5-GB-Limit des Free-Plans gesprengt hat.
+- Neuer Knopf „Alle Bilder jetzt optimieren" im Autohandel-Tab (nur Leitung): verkleinert einmalig auch alle bereits hochgeladenen Fahrzeug- und Auktionsbilder. Das alte Original wird dabei aus dem Speicher gelöscht, die Seite zeigt am Ende wie viel gespart wurde.
+- Die öffentlichen Seiten (/shop und /auktion) laden Fotos jetzt erst, wenn sie ins Bild scrollen (lazy loading). Dadurch zieht ein Seitenaufruf nicht mehr automatisch alle Bilder auf einmal.
+- Kein SQL nötig, rein Code. Einfach die Zip hochladen. Danach einmal den Optimieren-Knopf drücken, dann ist das Thema erledigt.
+
 ## v30 – Ping-Channels & 48-Stunden-Abholfrist
 - Der Auktions- und der Fahrzeughandel-Channel sind jetzt reine Ping-Channels. Es gibt kein dauerhaftes Live-Board und keine Archiv-Nachricht mehr. Jeder Ping (Auktionsstart, Erinnerungen, Auktionsende, neues Fahrzeug) verschwindet automatisch nach spätestens 30 Minuten wieder. Die Live-Ansicht und das Mitbieten laufen weiterhin auf /auktion, der Fahrzeughandel auf /shop.
 - Dreifache Absicherung beim Aufräumen: zeitlich (nach 30 Minuten), ablösend (eine neue Erinnerung entfernt die vorherige) und beim Abschluss (verkauft, beendet, erledigt oder gelöscht räumt alle Pings des Objekts auf einmal weg). Dafür gibt es die neue Tabelle discord_pings.

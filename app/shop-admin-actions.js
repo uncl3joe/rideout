@@ -102,3 +102,26 @@ export async function announceNewVehicle({ vehicleId }) {
   if (v) await postVehicleMessage(admin, v);
   return { ok: true };
 }
+
+// Einmalige Bild-Optimierung: setzt die image_url einer Zeile auf das neue, kleinere
+// Bild und loescht das alte Original aus dem Speicher. Nur fuer vehicles/auctions.
+export async function replaceEntityImage({ table, id, newUrl, oldPath }) {
+  const chk = await requireLeitung();
+  if (chk.error) return { ok: false, error: chk.error };
+  const admin = createAdminClient();
+  if (!admin) return { ok: false, error: 'Service-Schlüssel fehlt.' };
+  if (!['vehicles', 'auctions'].includes(table)) return { ok: false, error: 'Ungültige Tabelle.' };
+  if (!id || !newUrl) return { ok: false, error: 'Fehlende Daten.' };
+
+  const { error } = await admin.from(table).update({ image_url: newUrl }).eq('id', id);
+  if (error) return { ok: false, error: error.message };
+
+  if (oldPath) {
+    try {
+      await admin.storage.from('vehicles').remove([oldPath]);
+    } catch {
+      /* altes Bild weg zu bekommen ist nicht kritisch */
+    }
+  }
+  return { ok: true };
+}

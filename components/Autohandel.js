@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { createClient } from '@/lib/supabase/client';
+import { shrinkImage } from '@/lib/image-resize';
+import { runImageOptimization } from '@/lib/image-optimize-run';
 import { setVehicleStatus, deleteVehicle, deleteReservation, markReservationHandled, announceNewVehicle } from '@/app/shop-admin-actions';
 
 const fmt = (n) => Math.round(n || 0).toLocaleString('de-DE') + ' $';
@@ -20,6 +22,34 @@ export default function Autohandel({ role, userId, myName }) {
   const [file, setFile] = useState(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState('');
+  // Einmalige Bild-Optimierung (bestehende Fotos verkleinern).
+  const [optBusy, setOptBusy] = useState(false);
+  const [optMsg, setOptMsg] = useState('');
+  const [optResult, setOptResult] = useState(null);
+
+  async function optimizeImages() {
+    if (optBusy) return;
+    if (!confirm('Alle vorhandenen Fahrzeug- und Auktionsbilder einmalig verkleinern? Je nach Anzahl dauert das ein, zwei Minuten. Fenster offen lassen.')) return;
+    setOptBusy(true);
+    setOptResult(null);
+    setOptMsg('Starte …');
+    try {
+      const sum = await runImageOptimization({
+        onProgress: (p) => {
+          if (p.phase === 'start') setOptMsg(p.total ? '0 / ' + p.total + ' …' : 'Keine Bilder gefunden');
+          else if (p.phase === 'item') setOptMsg(p.done + ' / ' + p.total + ' …');
+        },
+      });
+      setOptResult(sum);
+      flash('Bilder optimiert ✓');
+      loadAll();
+    } catch (e) {
+      flash('Fehler: ' + (e.message || e));
+    } finally {
+      setOptBusy(false);
+      setOptMsg('');
+    }
+  }
 
   function flash(m) {
     setMsg(m);
@@ -44,8 +74,10 @@ export default function Autohandel({ role, userId, myName }) {
 
   async function uploadPhoto(f) {
     const sb = createClient();
-    const path = Date.now() + '_' + f.name.replace(/[^a-zA-Z0-9.]/g, '_');
-    const { error } = await sb.storage.from('vehicles').upload(path, f, { upsert: false });
+    // Bild vor dem Upload verkleinern/komprimieren (spart Bandbreite).
+    const small = await shrinkImage(f);
+    const path = Date.now() + '_' + small.name.replace(/[^a-zA-Z0-9.]/g, '_');
+    const { error } = await sb.storage.from('vehicles').upload(path, small, { upsert: false, contentType: small.type || undefined });
     if (error) throw error;
     return sb.storage.from('vehicles').getPublicUrl(path).data.publicUrl;
   }
@@ -165,6 +197,23 @@ export default function Autohandel({ role, userId, myName }) {
               {busy ? '…' : 'Anlegen'}
             </button>
           </div>
+        </div>
+      </div>
+
+      <div className="card" style={{ marginBottom: 18 }}>
+        <div className="hd"><h2>Bilder optimieren</h2><span className="tag">Bandbreite sparen</span></div>
+        <div className="bd">
+          <p style={{ margin: '0 0 10px', fontSize: 13, color: 'var(--mut)', lineHeight: 1.5 }}>
+            Neue Fotos werden ab jetzt beim Hochladen automatisch verkleinert. Mit diesem Knopf verkleinerst du einmalig auch alle bereits hochgeladenen Fahrzeug- und Auktionsbilder. Das senkt den Supabase-Verbrauch (Cached Egress) deutlich. Lass das Fenster offen, bis es fertig ist.
+          </p>
+          <button className="save" style={{ marginTop: 0, width: 'auto', padding: '10px 16px', fontSize: 13 }} onClick={optimizeImages} disabled={optBusy}>
+            {optBusy ? (optMsg || 'Läuft …') : 'Alle Bilder jetzt optimieren'}
+          </button>
+          {optResult && (
+            <div style={{ marginTop: 10, fontSize: 13, color: 'var(--mut)' }}>
+              Fertig: <b style={{ color: 'var(--txt)' }}>{optResult.shrunk}</b> verkleinert, {optResult.skipped} schon klein, {optResult.failed} Fehler. Gespart: <b style={{ color: 'var(--txt)' }}>{optResult.savedMB} MB</b>.
+            </div>
+          )}
         </div>
       </div>
 
