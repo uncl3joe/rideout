@@ -14,11 +14,11 @@ export default function Kasse() {
   async function load() {
     const sb = createClient();
     const [o, e, p] = await Promise.all([
-      sb.from('orders').select('mechanic_id, order_date, umsatz, provision'),
+      sb.from('orders').select('mechanic_id, order_date, umsatz, provision, superseded'),
       sb.from('expenses').select('amount'),
       sb.from('provision_payouts').select('mechanic_id, period_key, bonus, paid'),
     ]);
-    setOrders(o.data || []);
+    setOrders((o.data || []).filter((x) => !x.superseded));
     setExpenses(e.data || []);
     setPayouts(p.data || []);
   }

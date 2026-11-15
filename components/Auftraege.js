@@ -40,7 +40,7 @@ export default function Auftraege({ role }) {
   async function load() {
     const sb = createClient();
     const [o, p, s] = await Promise.all([
-      sb.from('orders').select('id, mechanic_id, mechanic_name, customer, order_date, umsatz, reingewinn, provision, screenshot_sum, created_at').order('created_at', { ascending: false }),
+      sb.from('orders').select('id, mechanic_id, mechanic_name, customer, order_date, umsatz, reingewinn, provision, screenshot_sum, created_at').eq('superseded', false).order('created_at', { ascending: false }),
       sb.from('profiles').select('id, name'),
       sb.from('services').select('name, vk').eq('active', true).order('vk', { ascending: false }),
     ]);

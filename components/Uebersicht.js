@@ -21,7 +21,7 @@ export default function Uebersicht({ role }) {
     (async () => {
       const sb = createClient();
       const [o, e, p] = await Promise.all([
-        sb.from('orders').select('mechanic_id, order_date, umsatz, material_total, reingewinn, provision'),
+        sb.from('orders').select('mechanic_id, order_date, umsatz, material_total, reingewinn, provision, superseded'),
         sb.from('expenses').select('expense_date, amount'),
         sb.from('profiles').select('id, name, role'),
       ]);
@@ -42,7 +42,7 @@ export default function Uebersicht({ role }) {
   const data = useMemo(() => {
     if (!orders || !sel) return null;
     const inRange = (d) => d >= sel.startISO && d < sel.endISO;
-    const o = orders.filter((x) => inRange(x.order_date));
+    const o = orders.filter((x) => !x.superseded && inRange(x.order_date));
     const ex = expenses.filter((x) => inRange(x.expense_date));
     const umsatz = o.reduce((s, x) => s + x.umsatz, 0);
     const prov = o.reduce((s, x) => s + x.provision, 0);

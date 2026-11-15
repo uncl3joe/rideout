@@ -80,6 +80,7 @@ export default function Terminal({ services, mechanicName, userId }) {
       .from('orders')
       .select('id, order_date, customer, umsatz, provision, created_at, order_items(service_name, qty)')
       .eq('mechanic_id', userId)
+      .eq('superseded', false)
       .order('created_at', { ascending: false })
       .limit(200);
     setMyOrders(data || []);

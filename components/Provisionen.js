@@ -24,7 +24,7 @@ export default function Provisionen({ role, myId }) {
   async function load() {
     const sb = createClient();
     const [o, p, pay] = await Promise.all([
-      sb.from('orders').select('mechanic_id, mechanic_name, order_date, provision'),
+      sb.from('orders').select('mechanic_id, mechanic_name, order_date, provision, superseded'),
       sb.from('profiles').select('id, name'),
       sb.from('provision_payouts').select('mechanic_id, period_key, bonus, paid'),
     ]);
@@ -56,7 +56,7 @@ export default function Provisionen({ role, myId }) {
     if (!orders || !sel) return [];
     const base = {};
     orders
-      .filter((o) => o.order_date >= sel.startISO && o.order_date < sel.endISO)
+      .filter((o) => !o.superseded && o.order_date >= sel.startISO && o.order_date < sel.endISO)
       .forEach((o) => {
         const b = base[o.mechanic_id] || (base[o.mechanic_id] = { auf: 0, prov: 0 });
         b.auf += 1;

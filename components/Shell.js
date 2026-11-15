@@ -15,6 +15,7 @@ import Auftraege from '@/components/Auftraege';
 import Provisionen from '@/components/Provisionen';
 import Kasse from '@/components/Kasse';
 import Auktion from '@/components/Auktion';
+import Abgleich from '@/components/Abgleich';
 
 const isTeam = (r) => ['mechaniker', 'manager', 'werkstattleitung', 'inhaber'].includes(r);
 const isLeitung = (r) => ['manager', 'werkstattleitung', 'inhaber'].includes(r);
@@ -34,6 +35,7 @@ const NAV = [
   { v: 'autohandel', t: 'Autohandel', ic: '🏎️', grp: 'Geschäft', can: isLeitung },
   { v: 'auktion', t: 'Auktion', ic: '🔨', grp: 'Geschäft', can: isLeitung },
   { v: 'katalog', t: 'Preise & Katalog', ic: '🏷️', grp: 'Admin', can: isInhaber },
+  { v: 'abgleich', t: 'Abgleich', ic: '🔍', grp: 'Admin', can: isInhaber },
 ];
 
 const ROLE_LABEL = {
@@ -169,6 +171,7 @@ export default function Shell({ profile, services }) {
           {view === 'katalog' && <Katalog />}
           {view === 'autohandel' && <Autohandel role={role} userId={profile.id} myName={profile.name} />}
           {view === 'auktion' && <Auktion userId={profile.id} myName={profile.name} />}
+          {view === 'abgleich' && <Abgleich />}
         </main>
       </div>
 

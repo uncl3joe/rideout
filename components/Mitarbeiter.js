@@ -23,7 +23,7 @@ export default function Mitarbeiter({ role, myId }) {
     const sb = createClient();
     const [p, o] = await Promise.all([
       sb.from('profiles').select('id, name, role, active, archived, provision_rate').order('name'),
-      sb.from('orders').select('mechanic_id, umsatz'),
+      sb.from('orders').select('mechanic_id, umsatz, superseded'),
     ]);
     setProfiles(p.data || []);
     setOrders(o.data || []);
@@ -35,6 +35,7 @@ export default function Mitarbeiter({ role, myId }) {
   const agg = useMemo(() => {
     const m = {};
     orders.forEach((o) => {
+      if (o.superseded) return;
       const a = m[o.mechanic_id] || (m[o.mechanic_id] = { auf: 0, um: 0 });
       a.auf += 1;
       a.um += o.umsatz;

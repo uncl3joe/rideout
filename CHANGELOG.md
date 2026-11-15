@@ -3,6 +3,16 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v33 – Werkstatt-Abgleich (JSON-Import als Wahrheit)
+- Neuer Reiter „Abgleich" im Backend (nur Inhaber): Du lädst den JSON-Export aus dem Werkstattskript hoch und das System vergleicht ihn mit den Hand-Einträgen der Mechaniker.
+- Vor dem Speichern eine Soll-Ist-Vorschau pro Mechaniker in euren vier Spalten (Umsatz, Reingewinn, Provision, Reingewinn n. Prov.): links Ist (eingetragen), daneben Soll (JSON) und die Differenz. Aufklappbar die einzelnen JSON-Aufträge.
+- „Eigenleistung" (Nullspiel mit Reingewinn ~0, z. B. eigenes Tuning zum Einkaufspreis) wird automatisch erkannt und getrennt markiert, damit echte vergessene Rechnungen nicht untergehen.
+- Entdoppelung über die eindeutige Auftragsnummer: egal wie oft oder überlappend du importierst, jeder Auftrag zählt genau einmal.
+- Namens-Zuordnung mit Rückfrage: passt ein Name aus dem Export nicht eindeutig auf ein Profil (Tippfehler, doppelte Leerzeichen), fragt das System nach und merkt sich die Zuordnung.
+- Material pro Arbeitsschritt wird aus dem Katalog vorbefüllt, der Rest einmalig nachgetragen. Daraus rechnet sich der echte Reingewinn und die Provision.
+- Ab dem Import ist das JSON die Wahrheit: die Hand-Einträge des Zeitraums werden als „ersetzt" markiert und zählen nicht mehr zur Auszahlung (keine Doppelzählung). Übersicht, Provisionen, Kasse, Mitarbeiter und Terminal rechnen entsprechend.
+- Neues SQL: update12.sql. Bitte zuerst im Supabase SQL-Editor ausführen, dann die Zip hochladen.
+
 ## v32 – Längeres Bild-Cache & Speicher-Aufräumen
 - Hochgeladene Bilder werden jetzt 30 Tage im Browser gecacht statt nur 1 Stunde (Supabase-Standard). Wer öfter in Shop oder Auktion schaut, lädt dasselbe Bild damit nur noch einmal statt immer wieder. Das drückt den Cached Egress zusätzlich, weil der genau aus Wiederholungsaufrufen entsteht. Gilt für neue Uploads und für die Optimierungs-Funktion aus v31.
 - Beim Löschen eines Fahrzeugs oder einer Auktion wird jetzt auch das zugehörige Foto aus dem Speicher entfernt, keine Karteileichen mehr.
