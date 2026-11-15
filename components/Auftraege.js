@@ -40,7 +40,7 @@ export default function Auftraege({ role }) {
   async function load() {
     const sb = createClient();
     const [o, p, s] = await Promise.all([
-      sb.from('orders').select('id, mechanic_id, mechanic_name, customer, order_date, umsatz, reingewinn, provision, screenshot_sum, created_at').eq('superseded', false).order('created_at', { ascending: false }),
+      sb.from('orders').select('id, mechanic_id, mechanic_name, customer, order_date, umsatz, reingewinn, provision, screenshot_sum, created_at, script_auftrag').eq('superseded', false).order('created_at', { ascending: false }),
       sb.from('profiles').select('id, name'),
       sb.from('services').select('name, vk').eq('active', true).order('vk', { ascending: false }),
     ]);
@@ -65,12 +65,24 @@ export default function Auftraege({ role }) {
   const rows = useMemo(() => {
     if (!orders || !sel) return [];
     const qq = q.toLowerCase().trim();
-    return orders.filter(
-      (o) =>
-        (showAll || (o.order_date >= sel.startISO && o.order_date < sel.endISO)) &&
-        (!mech || o.mechanic_id === mech) &&
-        (!qq || (o.customer || '').toLowerCase().includes(qq) || nameOf(o).toLowerCase().includes(qq))
-    );
+    return orders
+      .filter(
+        (o) =>
+          (showAll || (o.order_date >= sel.startISO && o.order_date < sel.endISO)) &&
+          (!mech || o.mechanic_id === mech) &&
+          (!qq || (o.customer || '').toLowerCase().includes(qq) || nameOf(o).toLowerCase().includes(qq))
+      )
+      // Immer nach echtem Auftragsdatum und -zeit sortieren (neueste zuerst),
+      // egal ob aus dem JSON-Import oder per Hand/KI erfasst. Innerhalb eines
+      // Tages: Import-Aufträge über die (zeitlich monotone) Auftragsnummer,
+      // Hand-Einträge über die Erfassungszeit.
+      .sort((a, b) => {
+        if (a.order_date !== b.order_date) return a.order_date < b.order_date ? 1 : -1;
+        const ka = a.script_auftrag, kb = b.script_auftrag;
+        if (ka != null && kb != null) return kb - ka;
+        const ca = a.created_at || '', cb = b.created_at || '';
+        return ca < cb ? 1 : ca > cb ? -1 : 0;
+      });
   }, [orders, sel, mech, q, profiles, showAll]);
 
   const sums = useMemo(() => {

@@ -3,6 +3,11 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v34 – Auftragsliste wieder sauber sortiert
+- Die Auftragsliste ist jetzt in jeder Ansicht (Heute, Woche, Monat, Jahr) wieder nach echtem Auftragsdatum und -zeit sortiert, neueste zuerst. Vorher sind die per JSON importierten Aufträge alle nach oben geklumpt, weil sie als Erfassungszeit den Importzeitpunkt getragen haben.
+- Innerhalb eines Tages werden Import-Aufträge über die Auftragsnummer (die zeitlich aufsteigt) und Hand- bzw. KI-Einträge über die Erfassungszeit sortiert.
+- Kein SQL nötig, rein Code. Wirkt sofort auch auf die schon importierten Aufträge, du musst nichts neu importieren.
+
 ## v33 – Werkstatt-Abgleich (JSON-Import als Wahrheit)
 - Neuer Reiter „Abgleich" im Backend (nur Inhaber): Du lädst den JSON-Export aus dem Werkstattskript hoch und das System vergleicht ihn mit den Hand-Einträgen der Mechaniker.
 - Vor dem Speichern eine Soll-Ist-Vorschau pro Mechaniker in euren vier Spalten (Umsatz, Reingewinn, Provision, Reingewinn n. Prov.): links Ist (eingetragen), daneben Soll (JSON) und die Differenz. Aufklappbar die einzelnen JSON-Aufträge.
