@@ -78,7 +78,7 @@ export default function Terminal({ services, mechanicName, userId }) {
     const sb = createClient();
     const { data } = await sb
       .from('orders')
-      .select('id, order_date, customer, umsatz, provision, created_at, order_items(service_name, qty)')
+      .select('id, order_date, customer, umsatz, provision, created_at, event_at, kennzeichen, script_auftrag, order_items(service_name, qty)')
       .eq('mechanic_id', userId)
       .eq('superseded', false)
       .order('created_at', { ascending: false })
@@ -113,7 +113,15 @@ export default function Terminal({ services, mechanicName, userId }) {
       const o = myOrders.filter((x) => x.order_date >= start);
       return { auf: o.length, um: o.reduce((s, x) => s + x.umsatz, 0), prov: o.reduce((s, x) => s + x.provision, 0) };
     };
-    const todayOrders = myOrders.filter((x) => x.order_date >= tISO);
+    // Nach echtem Datum und Zeit sortieren: Import-Aufträge über die Auftragsnummer, Hand-Einträge über die Erfassungszeit.
+    const cmp = (a, b) => {
+      if (a.order_date !== b.order_date) return a.order_date < b.order_date ? 1 : -1;
+      const ka = a.script_auftrag, kb = b.script_auftrag;
+      if (ka != null && kb != null) return kb - ka;
+      const ca = a.created_at || '', cb = b.created_at || '';
+      return ca < cb ? 1 : ca > cb ? -1 : 0;
+    };
+    const todayOrders = myOrders.filter((x) => x.order_date >= tISO).sort(cmp);
     const cnt = {};
     todayOrders.forEach((o) => (o.order_items || []).forEach((it) => {
       cnt[it.service_name] = (cnt[it.service_name] || 0) + it.qty;
@@ -401,7 +409,7 @@ export default function Terminal({ services, mechanicName, userId }) {
                   const names = its.map((it) => it.service_name + (it.qty > 1 ? ' ×' + it.qty : '')).join(' · ');
                   return (
                     <div className="ord" key={o.id}>
-                      <div className="r1"><span className="cust">{o.customer || 'Laufkunde'}</span><span className="tm">{timeOf(o.created_at)}</span></div>
+                      <div className="r1"><span className="cust">{o.customer || 'Laufkunde'}{o.kennzeichen ? ' · ' + o.kennzeichen : ''}</span><span className="tm">{timeOf(o.event_at || o.created_at)}</span></div>
                       <div className="r2">
                         <span className="chip">{its.length} Leistung{its.length !== 1 ? 'en' : ''}</span>
                         <span className="money"><span className="um num">{fmt(o.umsatz)}</span><span className="pv num">+{fmt(o.provision)} Prov.</span></span>

@@ -164,16 +164,18 @@ export async function commitImport({ jobs, nameMap, stepMaterials }) {
     return c != null ? Number(c) : 0;
   };
 
+  const eventAtOf = (erstellt) => String(erstellt || '').trim() || null; // Roh-Zeitstempel verbatim
+
   const dates = jobs.map((j) => dateOf(j.erstellt)).filter(Boolean).sort();
   const periodStart = dates[0] || null;
   const periodEnd = dates[dates.length - 1] || null;
 
-  let imported = 0, skippedDup = 0, skippedNoMech = 0, skippedStatus = 0;
-  const newRows = [];
+  let imported = 0, updated = 0, skippedNoMech = 0, skippedStatus = 0;
+  const rows = [];
   for (const j of jobs) {
     if (j.stand !== 'Abgerechnet') { skippedStatus++; continue; }
     const id = Number(j.auftrag);
-    if (!id || importedIds.has(id)) { skippedDup++; continue; }
+    if (!id) { skippedStatus++; continue; }
     const mechId = resolveMech(j.mechaniker);
     if (!mechId || !profById[mechId]) { skippedNoMech++; continue; }
     const rate = profById[mechId].rate;
@@ -183,11 +185,14 @@ export async function commitImport({ jobs, nameMap, stepMaterials }) {
     material = Math.round(material);
     const reingewinn = umsatz - material;
     const provision = Math.max(0, Math.round(reingewinn * rate));
-    newRows.push({
+    if (importedIds.has(id)) updated++; else imported++;
+    rows.push({
       mechanic_id: mechId,
       mechanic_name: profById[mechId].name,
       customer: j.kunde || '',
+      kennzeichen: j.kennzeichen || null,
       order_date: dateOf(j.erstellt),
+      event_at: eventAtOf(j.erstellt),
       screenshot_sum: null,
       adjust_factor: 1,
       umsatz,
@@ -198,15 +203,14 @@ export async function commitImport({ jobs, nameMap, stepMaterials }) {
       script_auftrag: id,
       superseded: false,
     });
-    importedIds.add(id);
-    imported++;
   }
 
-  if (newRows.length) {
-    // In Bloecken einfuegen (Entdoppelung schon ueber importedIds erledigt).
-    for (let i = 0; i < newRows.length; i += 200) {
-      const slice = newRows.slice(i, i + 200);
-      const { error } = await admin.from('orders').insert(slice);
+  if (rows.length) {
+    // Upsert über die Auftragsnummer: neue Aufträge werden eingefügt, schon
+    // vorhandene aktualisiert (Datum, Uhrzeit, Kennzeichen), ohne Dubletten.
+    for (let i = 0; i < rows.length; i += 200) {
+      const slice = rows.slice(i, i + 200);
+      const { error } = await admin.from('orders').upsert(slice, { onConflict: 'script_auftrag' });
       if (error) return { ok: false, error: error.message };
     }
   }
@@ -230,10 +234,10 @@ export async function commitImport({ jobs, nameMap, stepMaterials }) {
     period_start: periodStart,
     period_end: periodEnd,
     jobs_total: jobs.length,
-    jobs_imported: imported,
-    jobs_skipped: skippedDup + skippedNoMech + skippedStatus,
+    jobs_imported: imported + updated,
+    jobs_skipped: skippedNoMech + skippedStatus,
     imported_by: chk.user.id,
   });
 
-  return { ok: true, imported, skippedDup, skippedNoMech, skippedStatus, superseded, period: { start: periodStart, end: periodEnd } };
+  return { ok: true, imported, updated, skippedNoMech, skippedStatus, superseded, period: { start: periodStart, end: periodEnd } };
 }

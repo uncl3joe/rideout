@@ -3,6 +3,12 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v35 – Uhrzeit & Kennzeichen beim Import behalten
+- Beim JSON-Import werden jetzt die echte Uhrzeit (aus dem Export) und das Kennzeichen mitgespeichert. Vorher stand bei importierten Aufträgen überall die Importzeit (z. B. 20:07) statt der echten Auftragszeit, und das Kennzeichen fehlte komplett.
+- Terminal und Aufträge zeigen jetzt die echte Auftragszeit, und bei importierten Aufträgen zusätzlich das Kennzeichen.
+- Re-Import zieht bestehende Aufträge nach: spielst du denselben Export erneut ein, werden schon importierte Aufträge aktualisiert (Datum, Uhrzeit, Kennzeichen) statt übersprungen, ganz ohne Dubletten.
+- Neues SQL: update13.sql. Zuerst ausführen, dann Code hochladen, dann den 7-Tage-Export einmal erneut importieren, damit die bereits importierten Aufträge ihre Zeit und ihr Kennzeichen bekommen.
+
 ## v34 – Auftragsliste wieder sauber sortiert
 - Die Auftragsliste ist jetzt in jeder Ansicht (Heute, Woche, Monat, Jahr) wieder nach echtem Auftragsdatum und -zeit sortiert, neueste zuerst. Vorher sind die per JSON importierten Aufträge alle nach oben geklumpt, weil sie als Erfassungszeit den Importzeitpunkt getragen haben.
 - Innerhalb eines Tages werden Import-Aufträge über die Auftragsnummer (die zeitlich aufsteigt) und Hand- bzw. KI-Einträge über die Erfassungszeit sortiert.

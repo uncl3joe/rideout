@@ -178,8 +178,8 @@ export default function Abgleich() {
         <div className="card" style={{ marginBottom: 18, borderColor: '#36c275' }}>
           <div className="hd"><h2>Import übernommen</h2><span className="tag">{result.period?.start} bis {result.period?.end}</span></div>
           <div className="bd" style={{ fontSize: 13.5, lineHeight: 1.7 }}>
-            <b style={{ color: 'var(--txt)' }}>{result.imported}</b> Aufträge übernommen.{' '}
-            {result.skippedDup > 0 && <>{result.skippedDup} schon vorher importiert. </>}
+            <b style={{ color: 'var(--txt)' }}>{result.imported}</b> Aufträge neu übernommen.{' '}
+            {result.updated > 0 && <>{result.updated} bestehende aktualisiert (Datum, Uhrzeit, Kennzeichen). </>}
             {result.skippedNoMech > 0 && <>{result.skippedNoMech} ohne Namenszuordnung übersprungen. </>}
             {result.skippedStatus > 0 && <>{result.skippedStatus} nicht abgerechnet (Storno/offen). </>}
             {result.superseded > 0 && <><br />{result.superseded} Hand-Einträge im Zeitraum als ersetzt markiert.</>}
@@ -192,7 +192,7 @@ export default function Abgleich() {
           <div className="card" style={{ marginBottom: 18 }}>
             <div className="hd"><h2>Überblick</h2><span className="tag">{analysis.period?.start} bis {analysis.period?.end}</span></div>
             <div className="bd" style={{ fontSize: 13.5, lineHeight: 1.8 }}>
-              <b>{jobs.length}</b> Aufträge im File · <b>{soll.billed}</b> abgerechnet · {soll.storno} storniert (zählen nicht) · {soll.inArbeit} in Arbeit · <b>{soll.alreadyImp}</b> schon importiert (übersprungen)
+              <b>{jobs.length}</b> Aufträge im File · <b>{soll.billed}</b> abgerechnet · {soll.storno} storniert (zählen nicht) · {soll.inArbeit} in Arbeit · <b>{soll.alreadyImp}</b> schon importiert (werden aktualisiert)
               <div style={{ marginTop: 6 }}>
                 Zu übernehmen: <b style={{ color: 'var(--txt)' }}>{soll.billed - soll.alreadyImp - soll.unmatched.length}</b> Aufträge.
                 {soll.unmatched.length > 0 && <span style={{ color: '#ffb02e' }}> {soll.unmatched.length} noch ohne Namenszuordnung.</span>}

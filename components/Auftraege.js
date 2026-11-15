@@ -40,7 +40,7 @@ export default function Auftraege({ role }) {
   async function load() {
     const sb = createClient();
     const [o, p, s] = await Promise.all([
-      sb.from('orders').select('id, mechanic_id, mechanic_name, customer, order_date, umsatz, reingewinn, provision, screenshot_sum, created_at, script_auftrag').eq('superseded', false).order('created_at', { ascending: false }),
+      sb.from('orders').select('id, mechanic_id, mechanic_name, customer, order_date, umsatz, reingewinn, provision, screenshot_sum, created_at, script_auftrag, event_at, kennzeichen').eq('superseded', false).order('created_at', { ascending: false }),
       sb.from('profiles').select('id, name'),
       sb.from('services').select('name, vk').eq('active', true).order('vk', { ascending: false }),
     ]);
@@ -213,10 +213,10 @@ export default function Auftraege({ role }) {
                   <tr key={o.id}>
                     <td className="l num">
                       {o.order_date}
-                      {o.created_at && <small style={{ display: 'block', color: 'var(--faint)', fontWeight: 400 }}>{timeOf(o.created_at)}</small>}
+                      {(o.event_at || o.created_at) && <small style={{ display: 'block', color: 'var(--faint)', fontWeight: 400 }}>{timeOf(o.event_at || o.created_at)}</small>}
                     </td>
                     <td className="l"><div className="who2"><div className="ava">{initials(nameOf(o))}</div><div>{nameOf(o)}</div></div></td>
-                    <td className="l">{o.customer || '—'}</td>
+                    <td className="l">{o.customer || '—'}{o.kennzeichen && <small style={{ display: 'block', color: 'var(--faint)' }}>{o.kennzeichen}</small>}</td>
                     <td className="num umc">{fmt(o.umsatz)}</td>
                     {canMoney && <td className="num">{fmt(o.reingewinn)}</td>}
                     {canMoney && <td className="num pvc">{fmt(o.provision)}</td>}
