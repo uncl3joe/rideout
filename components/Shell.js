@@ -16,6 +16,9 @@ import Provisionen from '@/components/Provisionen';
 import Kasse from '@/components/Kasse';
 import Auktion from '@/components/Auktion';
 import Abgleich from '@/components/Abgleich';
+import Regeln from '@/components/Regeln';
+import RegelnDoc from '@/components/RegelnDoc';
+import { getRulesStatus, acceptRules } from '@/app/rules-actions';
 
 const isTeam = (r) => ['mechaniker', 'manager', 'werkstattleitung', 'inhaber'].includes(r);
 const isLeitung = (r) => ['manager', 'werkstattleitung', 'inhaber'].includes(r);
@@ -24,6 +27,7 @@ const isInhaber = (r) => r === 'inhaber';
 
 const NAV = [
   { v: 'terminal', t: 'Mein Terminal', ic: '🔧', grp: 'Arbeit', can: () => true },
+  { v: 'regeln', t: 'Regeln', ic: '📋', grp: 'Arbeit', can: () => true },
   { v: 'uebersicht', t: 'Übersicht', ic: '📊', grp: 'Auswertung', can: isTeam },
   { v: 'auftraege', t: 'Aufträge', ic: '🧾', grp: 'Auswertung', can: isTeam },
   { v: 'statistik', t: 'Statistik', ic: '📈', grp: 'Auswertung', can: isTeam },
@@ -70,6 +74,8 @@ export default function Shell({ profile, services }) {
   const [pwBusy, setPwBusy] = useState(false);
   const [pwMsg, setPwMsg] = useState('');
   const [toast, setToast] = useState('');
+  const [gate, setGate] = useState(null);
+  const [gateBusy, setGateBusy] = useState(false);
 
   // Nach Gruppen ordnen (Reihenfolge bleibt erhalten)
   const groups = [];
@@ -95,6 +101,24 @@ export default function Shell({ profile, services }) {
     document.addEventListener('click', close);
     return () => document.removeEventListener('click', close);
   }, [menuOpen]);
+
+  // Beim Login prüfen, ob der Leitfaden in der aktuellen Version bestätigt wurde.
+  useEffect(() => {
+    let active = true;
+    getRulesStatus().then((r) => {
+      if (active && r && r.ok && !r.accepted) setGate({ doc: r.doc, version: r.version });
+    });
+    return () => { active = false; };
+  }, []);
+
+  async function acceptGate() {
+    if (!gate) return;
+    setGateBusy(true);
+    const r = await acceptRules({ version: gate.version });
+    setGateBusy(false);
+    if (r.ok) setGate(null);
+    else setToast('Fehler: ' + (r.error || 'Bestätigung fehlgeschlagen'));
+  }
 
   async function changePw() {
     if (pw1.length < 6) return setPwMsg('Mindestens 6 Zeichen.');
@@ -172,6 +196,7 @@ export default function Shell({ profile, services }) {
           {view === 'autohandel' && <Autohandel role={role} userId={profile.id} myName={profile.name} />}
           {view === 'auktion' && <Auktion userId={profile.id} myName={profile.name} />}
           {view === 'abgleich' && <Abgleich />}
+          {view === 'regeln' && <Regeln />}
         </main>
       </div>
 
@@ -188,6 +213,14 @@ export default function Shell({ profile, services }) {
                 {pwBusy ? '…' : 'Speichern'}
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {gate && (
+        <div className="lf-gate">
+          <div className="lf-gatebox">
+            <RegelnDoc doc={gate.doc} onAccept={acceptGate} accepting={gateBusy} footerNote="Bitte einmal bestätigen, um fortzufahren." />
           </div>
         </div>
       )}

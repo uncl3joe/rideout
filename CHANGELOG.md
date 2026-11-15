@@ -3,6 +3,14 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v36 – Mitarbeiter-Regeln (Leitfaden)
+- Neuer Reiter „Regeln" für jeden Mitarbeiter: der komplette Werkstatt-Leitfaden, jederzeit nachlesbar, im ROC-Look.
+- Bestätigungs-Sperre beim Login: wer den Leitfaden in der aktuellen Version noch nicht bestätigt hat, muss ihn einmal mit „Gelesen und verstanden" bestätigen, bevor er weiterarbeiten kann. Gilt automatisch auch für alle bestehenden Mitarbeiter, die müssen sich also einmal neu einloggen und bestätigen.
+- Inhaber-Bearbeitung: Titel, Frequenzen, Regeln, Reihenfolge, Hinweis-Boxen und Grundregeln lassen sich direkt im Backend ändern. Beim Speichern kannst du festlegen, dass alle erneut bestätigen müssen.
+- Bestätigungs-Protokoll für Inhaber: wer hat die aktuelle Version wann bestätigt und wer ist noch offen.
+- Inhaltlich wie besprochen: Tuningbühnen raus, Bestellungen als letzter Punkt, Funk und GPS 23.08 prominent, neue Rechnungs-/Übergabe-Regel, Verhaltensregel zu Privatfahrzeugen, neue Grundregel „kein Streit vor laufender Kundschaft".
+- Neues SQL: update14.sql. Zuerst ausführen, dann die Zip hochladen.
+
 ## v35 – Uhrzeit & Kennzeichen beim Import behalten
 - Beim JSON-Import werden jetzt die echte Uhrzeit (aus dem Export) und das Kennzeichen mitgespeichert. Vorher stand bei importierten Aufträgen überall die Importzeit (z. B. 20:07) statt der echten Auftragszeit, und das Kennzeichen fehlte komplett.
 - Terminal und Aufträge zeigen jetzt die echte Auftragszeit, und bei importierten Aufträgen zusätzlich das Kennzeichen.
