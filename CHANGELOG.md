@@ -3,6 +3,11 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v38 – Fix: öffentliche Team-Seite zeigt die Mitarbeiter
+- Die öffentliche Team-Seite zeigt jetzt korrekt die freigeschalteten Mitarbeiter. Vorher wurden die Daten über einen internen Weg gelesen, der auf einer öffentlichen Seite nicht zuverlässig funktioniert.
+- Jetzt liest die Seite über eine schlanke öffentliche Ansicht (nur Name, Rang und Foto der freigeschalteten, aktiven Mitarbeiter), genau wie Shop und Auktion ihre öffentlichen Daten lesen.
+- Neues SQL: update16.sql. Zuerst ausführen, dann die Zip hochladen.
+
 ## v37 – Öffentliche Startseite & Team-Seite (Etappe 1)
 - Neue öffentliche Startseite auf der Hauptadresse: cinematischer Dark-Look mit Navigation (Start, Fahrzeugmarkt, Auktion, Tauschbörse, Team) und „Anmelden" rechts oben, das ins Mitarbeiter-Backend führt.
 - Das Mitarbeiter-Backend liegt jetzt unter /intern, der Login leitet dorthin. Öffentlich sind Startseite, Fahrzeugmarkt, Auktion, Team und als Platzhalter die Tauschbörse.
