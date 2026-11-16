@@ -3,6 +3,15 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v42 – Tauschbörse (Etappe 2)
+- Die Tauschbörse ist jetzt live: jeder Besucher kann ohne Login selbst ein Inserat einstellen (Auto gegen Auto).
+- Eingabe: Vorname, Nachname, Telefonnummer (Pflicht), angebotenes Fahrzeug mit Foto, gesuchtes Fahrzeug als Text und optional ein Foto davon. Kontakt läuft über Name und Telefon, kein Discord.
+- Fotos werden beim Hochladen automatisch verkleinert (wie im Fahrzeughandel), das hält die Egress-Kosten niedrig.
+- Inserate laufen 30 Tage und verschwinden danach automatisch. Die Übersicht zeigt pro Inserat die Restlaufzeit.
+- Neuer Backend-Tab „Tauschbörse" (Manager, Werkstattleitung, Inhaber): zeigt alle aktiven Inserate und erlaubt das Entfernen (zur Moderation).
+- Design wie der Rest der öffentlichen Seiten (Dark-Look, ROC-Branding), eingereiht ins Menü unter Tauschbörse.
+- Neues SQL: update18.sql. Zuerst ausführen, dann die Zip hochladen.
+
 ## v41 – Bieter-Check mit IP und Browser-Kennung
 - Ab jetzt wird bei jedem neuen Gebot die IP (serverseitig) und eine anonyme Browser-Kennung mitgespeichert.
 - Der Bieter-Check erkennt damit zusätzlich „gleiche IP, mehrere IC-Namen" und „gleicher Browser, mehrere IC-Namen", nicht mehr nur über den Discord-Namen.

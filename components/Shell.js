@@ -18,6 +18,7 @@ import Auktion from '@/components/Auktion';
 import Abgleich from '@/components/Abgleich';
 import Regeln from '@/components/Regeln';
 import TeamAdmin from '@/components/TeamAdmin';
+import TauschAdmin from '@/components/TauschAdmin';
 import BieterCheck from '@/components/BieterCheck';
 import RegelnDoc from '@/components/RegelnDoc';
 import { getRulesStatus, acceptRules } from '@/app/rules-actions';
@@ -41,6 +42,7 @@ const NAV = [
   { v: 'autohandel', t: 'Autohandel', ic: '🏎️', grp: 'Geschäft', can: isLeitung },
   { v: 'auktion', t: 'Auktion', ic: '🔨', grp: 'Geschäft', can: isLeitung },
   { v: 'bietercheck', t: 'Bieter-Check', ic: '🕵️', grp: 'Geschäft', can: isLeitung },
+  { v: 'tausch', t: 'Tauschbörse', ic: '🔁', grp: 'Geschäft', can: isLeitung },
   { v: 'teamseite', t: 'Team-Seite', ic: '🌐', grp: 'Geschäft', can: isLeitung },
   { v: 'katalog', t: 'Preise & Katalog', ic: '🏷️', grp: 'Admin', can: isInhaber },
   { v: 'abgleich', t: 'Abgleich', ic: '🔍', grp: 'Admin', can: isInhaber },
@@ -202,6 +204,7 @@ export default function Shell({ profile, services }) {
           {view === 'abgleich' && <Abgleich />}
           {view === 'regeln' && <Regeln />}
           {view === 'teamseite' && <TeamAdmin />}
+          {view === 'tausch' && <TauschAdmin />}
           {view === 'bietercheck' && <BieterCheck />}
         </main>
       </div>
