@@ -6,6 +6,20 @@ import { placeBid } from '@/app/auction-actions';
 
 const ORANGE = '#ff7a1a';
 const fmt = (n) => Math.round(n || 0).toLocaleString('de-DE') + ' $';
+// Anonyme, zufällige Browser-Kennung (bleibt im Browser gespeichert). Hilft dem
+// Bieter-Check, denselben Browser zu erkennen, auch bei wechselndem Namen.
+function deviceToken() {
+  try {
+    let t = localStorage.getItem('roc_bt');
+    if (!t) {
+      t = typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
+      localStorage.setItem('roc_bt', t);
+    }
+    return t;
+  } catch {
+    return null;
+  }
+}
 // Kompakte Button-Beschriftung: +50K bei runden Tausendern, sonst +50.000.
 const compact = (n) => {
   n = Math.round(Number(n) || 0);
@@ -167,7 +181,7 @@ export default function AuktionPublic({ initialAuctions, initialBids }) {
     const min = minNext(a);
     if (amount < min) return flash('Mindestens ' + fmt(min) + ' nötig.');
     setBusy(a.id);
-    const res = await placeBid({ auctionId: a.id, icName: ic, discordName: dc, amount });
+    const res = await placeBid({ auctionId: a.id, icName: ic, discordName: dc, amount, device: deviceToken() });
     setBusy('');
     if (!res.ok) return flash(res.error || 'Gebot fehlgeschlagen.');
     setCustom((c) => ({ ...c, [a.id]: '' }));

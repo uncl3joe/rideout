@@ -5,6 +5,7 @@ import { requireLeitung } from '@/lib/guards';
 import { effectiveEndMs } from '@/lib/cleanup';
 import { postAuctionStart, finalizeAuctionMessages } from '@/lib/auction-discord';
 import { sweepPings } from '@/lib/discord-pings';
+import { headers } from 'next/headers';
 
 const DEFAULT_INCREMENT = 50000; // Vorgabe im Backend-Formular
 const MIN_INCREMENT_FLOOR = 1000; // kleinste erlaubte Mindesterhöhung
@@ -39,7 +40,7 @@ async function removeStorageImage(admin, url) {
 }
 
 // ---------------- Öffentlich: Gebot abgeben ----------------
-export async function placeBid({ auctionId, icName, discordName, amount }) {
+export async function placeBid({ auctionId, icName, discordName, amount, device }) {
   icName = String(icName || '').trim();
   discordName = String(discordName || '').trim();
   amount = Math.round(Number(amount) || 0);
@@ -64,7 +65,17 @@ export async function placeBid({ auctionId, icName, discordName, amount }) {
     .single();
   if (be || !bid) return { ok: false, error: 'Gebot fehlgeschlagen.' };
 
-  await admin.from('bid_contacts').insert({ bid_id: bid.id, auction_id: auctionId, discord_name: discordName });
+  // IP (serverseitig aus den Headern) und anonyme Browser-Kennung fuer den Bieter-Check.
+  let ip = null;
+  try {
+    const h = headers();
+    const fwd = String(h.get('x-forwarded-for') || '');
+    ip = (fwd.split(',')[0].trim() || h.get('x-real-ip') || '').trim() || null;
+  } catch {
+    /* ohne IP kein Problem */
+  }
+  const dev = String(device || '').slice(0, 80) || null;
+  await admin.from('bid_contacts').insert({ bid_id: bid.id, auction_id: auctionId, discord_name: discordName, ip, device: dev });
   await admin.from('auctions').update({ current_bid: amount, current_bid_ic: icName, last_bid_at: nowIso }).eq('id', auctionId);
 
   // Kein Discord-Update mehr pro Gebot. Die Live-Ansicht läuft auf /auktion.

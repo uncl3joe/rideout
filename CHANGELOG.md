@@ -3,6 +3,18 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v41 – Bieter-Check mit IP und Browser-Kennung
+- Ab jetzt wird bei jedem neuen Gebot die IP (serverseitig) und eine anonyme Browser-Kennung mitgespeichert.
+- Der Bieter-Check erkennt damit zusätzlich „gleiche IP, mehrere IC-Namen" und „gleicher Browser, mehrere IC-Namen", nicht mehr nur über den Discord-Namen.
+- Für bereits vorhandene Gebote bleiben IP und Browser-Kennung leer, das greift erst ab jetzt.
+- Neues SQL: update17.sql. Zuerst ausführen, dann die Zip hochladen.
+
+## v40 – Bieter-Check
+- Neuer Leitungs-Tab „Bieter-Check" bei den Auktionen: findet Auffälligkeiten in den Geboten anhand des Discord-Namens.
+- Zeigt, welche Discord-Kontakte unter mehreren verschiedenen IC-Namen geboten haben, und wo in einer Auktion derselbe Kontakt mehrfach geboten hat (Hochtreiben).
+- Arbeitet mit den vorhandenen Daten, auch rückwirkend. Kein SQL nötig.
+- Eine Erkennung zusätzlich per IP ist auf Wunsch nachrüstbar.
+
 ## v39 – Öffentliche Seiten wirklich ohne Login
 - Startseite, Team und Tauschbörse sind jetzt ohne Login erreichbar. Vorher wurde man dort auf den Login umgeleitet. Nur das Mitarbeiter-Backend unter /intern braucht weiterhin einen Login.
 - Eingeloggte Nutzer, die auf der Login-Seite landen, kommen jetzt direkt ins Backend (/intern) statt auf die öffentliche Startseite.
