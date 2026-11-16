@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import Shop from '@/components/Shop';
+import PublicNav from '@/components/PublicNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -16,5 +17,10 @@ export default async function ShopPage() {
     .select('id, model, price, seller_name, status, image_url, reserve_24h, created_at')
     .order('created_at', { ascending: false });
 
-  return <Shop vehicles={vehicles || []} />;
+  return (
+    <>
+      <PublicNav active="shop" />
+      <Shop vehicles={vehicles || []} />
+    </>
+  );
 }

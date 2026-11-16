@@ -17,6 +17,7 @@ import Kasse from '@/components/Kasse';
 import Auktion from '@/components/Auktion';
 import Abgleich from '@/components/Abgleich';
 import Regeln from '@/components/Regeln';
+import TeamAdmin from '@/components/TeamAdmin';
 import RegelnDoc from '@/components/RegelnDoc';
 import { getRulesStatus, acceptRules } from '@/app/rules-actions';
 
@@ -38,6 +39,7 @@ const NAV = [
   { v: 'vertraege', t: 'Verträge', ic: '📄', grp: 'Geschäft', can: isLeitung },
   { v: 'autohandel', t: 'Autohandel', ic: '🏎️', grp: 'Geschäft', can: isLeitung },
   { v: 'auktion', t: 'Auktion', ic: '🔨', grp: 'Geschäft', can: isLeitung },
+  { v: 'teamseite', t: 'Team-Seite', ic: '🌐', grp: 'Geschäft', can: isLeitung },
   { v: 'katalog', t: 'Preise & Katalog', ic: '🏷️', grp: 'Admin', can: isInhaber },
   { v: 'abgleich', t: 'Abgleich', ic: '🔍', grp: 'Admin', can: isInhaber },
 ];
@@ -197,6 +199,7 @@ export default function Shell({ profile, services }) {
           {view === 'auktion' && <Auktion userId={profile.id} myName={profile.name} />}
           {view === 'abgleich' && <Abgleich />}
           {view === 'regeln' && <Regeln />}
+          {view === 'teamseite' && <TeamAdmin />}
         </main>
       </div>
 

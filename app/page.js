@@ -1,49 +1,25 @@
-import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import Shell from '@/components/Shell';
+import Landing from '@/components/Landing';
 
 export const dynamic = 'force-dynamic';
 
+export const metadata = {
+  title: 'Ride Out Customs',
+  description: 'Werkstatt, Tuning und Fahrzeughandel bei Ride Out Customs. Kaufen, ersteigern oder tauschen.',
+};
+
+// Oeffentliche Startseite (ohne Login). Zeigt leichte Live-Infos (Bestand, Auktion).
 export default async function Home() {
-  const supabase = createClient();
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect('/login');
-
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('name, role')
-    .eq('id', user.id)
-    .single();
-
-  // Deaktivierte/gelöschte Mitarbeiter sofort ausloggen. Bewusst als eigener,
-  // fehlertoleranter Check: fehlt die Spalte (SQL noch nicht eingespielt),
-  // bleibt der Login/die Rolle unangetastet. Kein try/catch um redirect().
-  const { data: act, error: actErr } = await supabase
-    .from('profiles')
-    .select('active')
-    .eq('id', user.id)
-    .single();
-  if (!actErr && act && act.active === false) {
-    await supabase.auth.signOut();
-    redirect('/login');
+  const sb = createClient();
+  let vehicleCount = 0;
+  let auctionLive = false;
+  try {
+    const { count } = await sb.from('vehicles').select('id', { count: 'exact', head: true }).eq('status', 'verfuegbar');
+    vehicleCount = count || 0;
+    const { data: live } = await sb.from('auctions').select('id').eq('status', 'live').limit(1);
+    auctionLive = (live || []).length > 0;
+  } catch {
+    /* Startseite rendert auch ohne Live-Zahlen */
   }
-
-  const { data: services } = await supabase
-    .from('services')
-    .select('id, name, category, vk, material')
-    .eq('active', true)
-    .order('category', { ascending: true })
-    .order('vk', { ascending: false });
-
-  const safeProfile = {
-    id: user.id,
-    name: profile?.name || user.email,
-    role: profile?.role || 'mechaniker',
-    email: user.email,
-  };
-
-  return <Shell profile={safeProfile} services={services || []} />;
+  return <Landing vehicleCount={vehicleCount} auctionLive={auctionLive} />;
 }

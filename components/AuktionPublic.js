@@ -270,10 +270,6 @@ export default function AuktionPublic({ initialAuctions, initialBids }) {
   return (
     <div className="ak-page">
       <div className="ak-inner">
-        <div className="ak-top">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/logo.png" className="ak-logo" alt="Ride Out Customs" />
-        </div>
         <div className="ak-hero">
           <h1>Live-<span>Auktionen</span></h1>
           <p>Biete mit und sichere dir deinen Ride.</p>

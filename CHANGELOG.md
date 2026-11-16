@@ -3,6 +3,15 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v37 – Öffentliche Startseite & Team-Seite (Etappe 1)
+- Neue öffentliche Startseite auf der Hauptadresse: cinematischer Dark-Look mit Navigation (Start, Fahrzeugmarkt, Auktion, Tauschbörse, Team) und „Anmelden" rechts oben, das ins Mitarbeiter-Backend führt.
+- Das Mitarbeiter-Backend liegt jetzt unter /intern, der Login leitet dorthin. Öffentlich sind Startseite, Fahrzeugmarkt, Auktion, Team und als Platzhalter die Tauschbörse.
+- Neue öffentliche Team-Seite: zeigt die freigeschalteten Mitarbeiter nach Rollen gruppiert (Inhaber, Werkstattleitung, Manager, Mechaniker, Praktikanten), mit Foto oder Initialen.
+- Gemeinsame Kopf-Navigation auf allen öffentlichen Seiten, die doppelten Logos auf Shop und Auktion sind dafür raus.
+- Neuer Backend-Tab „Team-Seite" (Manager, Werkstattleitung, Inhaber): pro Mitarbeiter ein Haken „auf Team-Seite zeigen" und Foto-Upload (wird automatisch verkleinert). Mitarbeiter selbst laden keine Fotos hoch.
+- Die Tauschbörse folgt in Etappe 2.
+- Neues SQL: update15.sql. Zuerst ausführen, dann die Zip hochladen.
+
 ## v36 – Mitarbeiter-Regeln (Leitfaden)
 - Neuer Reiter „Regeln" für jeden Mitarbeiter: der komplette Werkstatt-Leitfaden, jederzeit nachlesbar, im ROC-Look.
 - Bestätigungs-Sperre beim Login: wer den Leitfaden in der aktuellen Version noch nicht bestätigt hat, muss ihn einmal mit „Gelesen und verstanden" bestätigen, bevor er weiterarbeiten kann. Gilt automatisch auch für alle bestehenden Mitarbeiter, die müssen sich also einmal neu einloggen und bestätigen.

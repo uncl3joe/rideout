@@ -88,29 +88,6 @@ export default function Shop({ vehicles }) {
 
   return (
     <div className="shop">
-      <header className="shop-top" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo.png" className="shop-logo" alt="Ride Out Customs" />
-        <a
-          href="/auktion"
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            background: '#ff7a1a',
-            color: '#111',
-            fontWeight: 800,
-            fontSize: 15,
-            padding: '13px 22px',
-            borderRadius: 12,
-            textDecoration: 'none',
-            boxShadow: '0 6px 20px rgba(255,122,26,.40)',
-          }}
-        >
-          🔨 Zu den Live-Auktionen →
-        </a>
-      </header>
-
       <div className="shop-hero">
         <h1>Dein <span>Ride</span> wartet.</h1>
         <p>Handgepflegte Rides, frisch aus unserer Halle.<br />Jetzt aussuchen und in Sekunden reservieren.</p>

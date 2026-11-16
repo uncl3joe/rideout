@@ -22,7 +22,7 @@ export default function LoginPage() {
       setBusy(false);
       return;
     }
-    router.replace('/');
+    router.replace('/intern');
     router.refresh();
   }
 

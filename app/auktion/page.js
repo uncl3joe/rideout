@@ -1,5 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import AuktionPublic from '@/components/AuktionPublic';
+import PublicNav from '@/components/PublicNav';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,5 +29,10 @@ export default async function AuktionPage() {
     bids = data || [];
   }
 
-  return <AuktionPublic initialAuctions={auctions || []} initialBids={bids} />;
+  return (
+    <>
+      <PublicNav active="auktion" />
+      <AuktionPublic initialAuctions={auctions || []} initialBids={bids} />
+    </>
+  );
 }
