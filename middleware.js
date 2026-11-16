@@ -33,13 +33,19 @@ export async function middleware(request) {
 
   const path = request.nextUrl.pathname;
   const isAuthRoute = path === '/login';
-  // Öffentlich erreichbar (ohne Login): die Kunden-Fahrzeugseite.
+  // Öffentlich erreichbar (ohne Login): Startseite, Fahrzeugmarkt, Auktion,
+  // Team und Tauschbörse. Nur /intern (das Mitarbeiter-Backend) braucht Login.
   const isPublic =
     isAuthRoute ||
+    path === '/' ||
     path === '/shop' ||
     path.startsWith('/shop/') ||
     path === '/auktion' ||
     path.startsWith('/auktion/') ||
+    path === '/team' ||
+    path.startsWith('/team/') ||
+    path === '/tausch' ||
+    path.startsWith('/tausch/') ||
     path.startsWith('/api/cron');
 
   if (!user && !isPublic) {
@@ -49,7 +55,7 @@ export async function middleware(request) {
   }
   if (user && isAuthRoute) {
     const url = request.nextUrl.clone();
-    url.pathname = '/';
+    url.pathname = '/intern';
     return NextResponse.redirect(url);
   }
 

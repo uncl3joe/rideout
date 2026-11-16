@@ -3,6 +3,11 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v39 – Öffentliche Seiten wirklich ohne Login
+- Startseite, Team und Tauschbörse sind jetzt ohne Login erreichbar. Vorher wurde man dort auf den Login umgeleitet. Nur das Mitarbeiter-Backend unter /intern braucht weiterhin einen Login.
+- Eingeloggte Nutzer, die auf der Login-Seite landen, kommen jetzt direkt ins Backend (/intern) statt auf die öffentliche Startseite.
+- Kein SQL nötig, rein Code.
+
 ## v38 – Fix: öffentliche Team-Seite zeigt die Mitarbeiter
 - Die öffentliche Team-Seite zeigt jetzt korrekt die freigeschalteten Mitarbeiter. Vorher wurden die Daten über einen internen Weg gelesen, der auf einer öffentlichen Seite nicht zuverlässig funktioniert.
 - Jetzt liest die Seite über eine schlanke öffentliche Ansicht (nur Name, Rang und Foto der freigeschalteten, aktiven Mitarbeiter), genau wie Shop und Auktion ihre öffentlichen Daten lesen.
