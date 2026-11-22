@@ -3,6 +3,16 @@
 Neueste Version oben. v14 und neuer sind exakt dokumentiert, v1 bis v13 sind
 die feature-genau rekonstruierte Aufbauphase (Okt/Nov 2026).
 
+## v43 – Bieter-Check erweitert + Sperrfunktion
+- Neue Sperrliste: IC-Namen, Discord-Namen, IPs und Browser-Kennungen lassen sich sperren. Wer gesperrt ist, kann kein Gebot mehr abgeben (Prüfung serverseitig beim Bieten).
+- Die Sperrliste ist direkt im Bieter-Check: manuell sperren, Grund hinterlegen, und jederzeit wieder entsperren. Zusätzlich gibt es überall in der Auswertung „sperren"-Knöpfe direkt neben jedem Namen, Discord, jeder IP und jedem Browser.
+- Neue Cluster-Ansicht „Wahrscheinlich dieselbe Person": verbindet Gebote über gleiche IP, gleichen Browser oder gleichen Discord und zeigt, welche IC-Namen, Discords, IPs und Browser zusammengehören. Mit „Gruppe sperren" lassen sich alle Namen und Discords einer Gruppe auf einmal sperren.
+- Mehr Infos je Hinweis: Zeitpunkte (erste/letzte Aktivität), Anzahl Auktionen, Gebote und Höchstbetrag.
+- Neues komplettes Gebots-Protokoll mit Filter (nach IC-Name, Discord, IP, Browser oder Auktion) und Sperr-Knöpfen pro Zeile.
+- Statistik-Leiste oben: Gebote, IC-Namen, Discord, IPs, Browser und Anzahl Sperren auf einen Blick.
+- Gesperrte Einträge sind in der ganzen Auswertung rot als „gesperrt" markiert.
+- Neues SQL: update19.sql. Zuerst ausführen, dann die Zip hochladen.
+
 ## v42 – Tauschbörse (Etappe 2)
 - Die Tauschbörse ist jetzt live: jeder Besucher kann ohne Login selbst ein Inserat einstellen (Auto gegen Auto).
 - Eingabe: Vorname, Nachname, Telefonnummer (Pflicht), angebotenes Fahrzeug mit Foto, gesuchtes Fahrzeug als Text und optional ein Foto davon. Kontakt läuft über Name und Telefon, kein Discord.

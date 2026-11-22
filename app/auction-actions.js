@@ -6,6 +6,7 @@ import { effectiveEndMs } from '@/lib/cleanup';
 import { postAuctionStart, finalizeAuctionMessages } from '@/lib/auction-discord';
 import { sweepPings } from '@/lib/discord-pings';
 import { headers } from 'next/headers';
+import { normBanValue } from '@/lib/bans';
 
 const DEFAULT_INCREMENT = 50000; // Vorgabe im Backend-Formular
 const MIN_INCREMENT_FLOOR = 1000; // kleinste erlaubte Mindesterhöhung
@@ -50,6 +51,37 @@ export async function placeBid({ auctionId, icName, discordName, amount, device 
   const admin = createAdminClient();
   if (!admin) return { ok: false, error: 'Server ist nicht konfiguriert.' };
 
+  // IP (serverseitig) und Browser-Kennung frueh bestimmen: fuer die Sperrpruefung
+  // und spaeter fuer den Bieter-Check.
+  let ip = null;
+  try {
+    const h = headers();
+    const fwd = String(h.get('x-forwarded-for') || '');
+    ip = (fwd.split(',')[0].trim() || h.get('x-real-ip') || '').trim() || null;
+  } catch {
+    /* ohne IP kein Problem */
+  }
+  const dev = String(device || '').slice(0, 80) || null;
+
+  // Sperrpruefung: gesperrter IC-Name, Discord, IP oder Browser kommt nicht durch.
+  const { data: banRows } = await admin.from('bid_bans').select('kind, value');
+  if (banRows && banRows.length) {
+    const icN = normBanValue('ic', icName);
+    const dcN = normBanValue('discord', discordName);
+    const ipN = ip ? normBanValue('ip', ip) : null;
+    const dvN = dev ? normBanValue('device', dev) : null;
+    const blocked = banRows.some(
+      (x) =>
+        (x.kind === 'ic' && x.value === icN) ||
+        (x.kind === 'discord' && x.value === dcN) ||
+        (x.kind === 'ip' && ipN && x.value === ipN) ||
+        (x.kind === 'device' && dvN && x.value === dvN),
+    );
+    if (blocked) {
+      return { ok: false, error: 'Dein Gebot kann nicht angenommen werden. Bitte wende dich an die Werkstattleitung.' };
+    }
+  }
+
   const { data: a } = await admin.from('auctions').select('*').eq('id', auctionId).single();
   if (!a) return { ok: false, error: 'Auktion nicht gefunden.' };
   if (a.status !== 'live' || Date.now() >= effectiveEndMs(a)) return { ok: false, error: 'Diese Auktion ist bereits beendet.' };
@@ -65,16 +97,7 @@ export async function placeBid({ auctionId, icName, discordName, amount, device 
     .single();
   if (be || !bid) return { ok: false, error: 'Gebot fehlgeschlagen.' };
 
-  // IP (serverseitig aus den Headern) und anonyme Browser-Kennung fuer den Bieter-Check.
-  let ip = null;
-  try {
-    const h = headers();
-    const fwd = String(h.get('x-forwarded-for') || '');
-    ip = (fwd.split(',')[0].trim() || h.get('x-real-ip') || '').trim() || null;
-  } catch {
-    /* ohne IP kein Problem */
-  }
-  const dev = String(device || '').slice(0, 80) || null;
+  // IP und Browser-Kennung (oben bestimmt) fuer den Bieter-Check mitspeichern.
   await admin.from('bid_contacts').insert({ bid_id: bid.id, auction_id: auctionId, discord_name: discordName, ip, device: dev });
   await admin.from('auctions').update({ current_bid: amount, current_bid_ic: icName, last_bid_at: nowIso }).eq('id', auctionId);
 
